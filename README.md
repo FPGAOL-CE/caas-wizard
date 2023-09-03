@@ -1,2 +1,2 @@
-# caas-proj-conf
-Project configuration file for CaaS platform, and corresponded Makefile generator
+## caas-wizard
+Configuration/Makefile/User script manager for the CaaS platform. 
