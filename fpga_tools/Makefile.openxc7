@@ -1,0 +1,43 @@
+DB_DIR = /nextpnr-xilinx/xilinx/external/prjxray-db
+CHIPDB = /chipdb
+
+BUILDDIR := ${CURDIR}/build
+TOP := __CAAS_TOP
+SOURCES := __CAAS_SOURCES
+XDC := __CAAS_XDC
+
+CHIPFAM := __CAAS_FAMILY
+PART := __CAAS_PART
+
+LOGFILE := ${BUILDDIR}/top.log
+
+all: ${BUILDDIR}/top.bit
+
+${BUILDDIR}:
+	mkdir -p 777 -p ${BUILDDIR} && chown -R nobody ${BUILDDIR}
+
+${BUILDDIR}/top.json: ${SOURCES}
+	cd ${BUILDDIR} && yosys -p "synth_xilinx -flatten -abc9 -arch xc7 -top ${TOP}; write_json top.json" $< >> ${LOGFILE} 2>&1
+
+# The chip database only needs to be generated once
+# that is why we don't clean it with make clean
+${CHIPDB}/${PART}.bin:
+	pypy3 /nextpnr-xilinx/xilinx/python/bbaexport.py --device ${PART} --bba ${PART}.bba
+	bbasm -l ${PART}.bba ${CHIPDB}/${PART}.bin
+	rm -f ${PART}.bba
+
+${BUILDDIR}/top.fasm: ${BUILDDIR}/top.json ${CHIPDB}/${PART}.bin
+	cd ${BUILDDIR} && nextpnr-xilinx --chipdb ${CHIPDB}/${PART}.bin --xdc ${XDC} --json top.json --fasm $@ --verbose --debug >> ${LOGFILE} 2>&1
+	
+${BUILDDIR}/top.frames: ${BUILDDIR}/top.fasm
+	cd ${BUILDDIR} && fasm2frames --part ${PART} --db-root ${DB_DIR}/${CHIPFAM} $< > $@ #FIXME: fasm2frames should be on PATH
+
+${BUILDDIR}/top.bit: ${BUILDDIR}/top.frames
+	cd ${BUILDDIR} && xc7frames2bit --part_file ${DB_DIR}/${CHIPFAM}/${PART}/part.yaml --part_name ${PART} --frm_file $< --output_file $@ >> ${LOGFILE} 2>&1
+
+.PHONY: clean
+clean:
+	@rm -f *.bit
+	@rm -f *.frames
+	@rm -f *.fasm
+	@rm -f *.json

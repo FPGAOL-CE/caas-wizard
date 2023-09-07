@@ -1,0 +1,39 @@
+BUILDDIR := ${CURDIR}/build
+TOP := __CAAS_TOP
+SOURCES := __CAAS_SOURCES
+XDC := __CAAS_XDC
+
+DEVICE := __CAAS_F4PGA_DEVICE
+BITSTREAM_DEVICE := __CAAS_FAMILY
+PARTNAME := __CAAS_PART
+
+XDC_CMD := -x ${XDC}
+
+LOGFILE := ${BUILDDIR}/top.log
+
+# Build design
+all: ${BUILDDIR}/${TOP}.bit
+
+${BUILDDIR}:
+	mkdir -m 777 -p ${BUILDDIR} && chown -R nobody ${BUILDDIR}
+
+${BUILDDIR}/${TOP}.eblif: | ${BUILDDIR}
+	cd ${BUILDDIR} && symbiflow_synth -t ${TOP} -v ${SOURCES} -d ${BITSTREAM_DEVICE} -p ${PARTNAME} ${XDC_CMD} > ${LOGFILE} 2>&1
+
+${BUILDDIR}/${TOP}.net: ${BUILDDIR}/${TOP}.eblif
+	cd ${BUILDDIR} && symbiflow_pack -e ${TOP}.eblif -d ${DEVICE} ${SDC_CMD} >> ${LOGFILE} 2>&1
+
+${BUILDDIR}/${TOP}.place: ${BUILDDIR}/${TOP}.net
+	cd ${BUILDDIR} && symbiflow_place -e ${TOP}.eblif -d ${DEVICE} ${PCF_CMD} -n ${TOP}.net -P ${PARTNAME} ${SDC_CMD} >> ${LOGFILE} 2>&1
+
+${BUILDDIR}/${TOP}.route: ${BUILDDIR}/${TOP}.place
+	cd ${BUILDDIR} && symbiflow_route -e ${TOP}.eblif -d ${DEVICE} ${SDC_CMD} >> ${LOGFILE} 2>&1
+
+${BUILDDIR}/${TOP}.fasm: ${BUILDDIR}/${TOP}.route
+	cd ${BUILDDIR} && symbiflow_write_fasm -e ${TOP}.eblif -d ${DEVICE} >> ${LOGFILE} 2>&1
+
+${BUILDDIR}/${TOP}.bit: ${BUILDDIR}/${TOP}.fasm
+	cd ${BUILDDIR} && symbiflow_write_bitstream -d ${BITSTREAM_DEVICE} -f ${TOP}.fasm -p ${PARTNAME} -b ${TOP}.bit >> ${LOGFILE} 2>&1
+
+clean:
+	rm -rf ${BUILDDIR}
