@@ -17,9 +17,16 @@ constraint_default = '*.xdc'
 sources_default = '*.v'
 misc_default = ''
 
+term_white = "\033[37m"
+term_orig = "\033[0m"
+
+GENERIC_MF_NAME = 'Makefile'
+GENERIC_SH_NAME = 'run.sh'
+
 def getjobid():
     return '%08x' % random.randrange(16**8)
 
+# this runs on the compiling server
 def mfgen(conf_file, proj_dir, makefile, script, overwrite):
     if overwrite == False and (os.path.isfile(script) or os.path.isfile(makefile)):
         print('File existing! Use --overwrite to overwrite')
@@ -44,19 +51,37 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
         family = 'virtex7'
     elif 'xc7z' in part:
         family = 'zynq7'
+    print("FPGA family derived to be " + family)
     # deriving F4PGA DEVICE from part name
     f4pga_device = 'invalid'
     if backend == 'f4pga':
         if 'xc7z' in part:
-            f4pga_device = part[:7] + '_test'
+            f4pga_device = part[:7] + '_test' # now seems xc7z010 only
         else:
             f4pga_device = part[:part.find('t')+1] + '_test'
+        print("F4PGA device name derived to be " + f4pga_device)
     # copy the template files
     tools_dir = os.path.join(Path(__file__).parent.absolute(), 'fpga_tools')
-    makefile_t = os.path.join(tools_dir, 'Makefile.' + backend)
-    script_t = os.path.join(tools_dir, backend + '.sh')
+    mf_t = os.path.join(tools_dir, 'Makefile.' + backend)
+    sh_t = os.path.join(tools_dir, backend + '.sh')
+    mf = os.path.join(proj_dir, GENERIC_MF_NAME)
+    sh = os.path.join(proj_dir, GENERIC_SH_NAME)
+    print("Copy build files...")
+    os.system("cp -v " + mf_t + " " + mf)
+    os.system("cp -v " + sh_t + " " + sh)
+    print("Patching build files...")
+    os.system("sed -i " 
+              + "-e \'s/__CAAS_TOP/" + top + "/g\' "
+              + "-e \'s/__CAAS_SOURCES/" + sources + "/g\' "
+              + "-e \'s/__CAAS_XDC/" + constraint + "/g\' "
+              + "-e \'s/__CAAS_PART/" + part + "/g\' "
+              + "-e \'s/__CAAS_FAMILY/" + family + "/g\' "
+              + "-e \'s/__CAAS_F4PGA_DEVICE/" + f4pga_device + "/g\' "
+              + mf)
+    # TODO: wildcard makefile handling
 
 def submit(conf_file, proj_dir, dryrun, newjobid):
+    print(term_white + "Preparing payload for project..." + term_orig)
     caas_conf = configparser.ConfigParser()
     caas_conf.read(conf_file)
     constraint = caas_conf['project'].get('constraint', constraint_default)
@@ -81,6 +106,12 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
         print("Use a new random jobID " + jobid)
         with open(jobidfile, 'w') as f:
             f.write(jobid)
+    if dryrun:
+        print("Stop here for dryrun.")
+        return
+    print(term_white + "Upload to compiling server..." + term_orig)
+    server = caas_conf['caas'].get('server', local_server)
+    print("Using server at " + server)
 
 def clean(conf_file, proj_dir):
     for i in [upload_file, download_file, jobid_file, caas_armed_file]:
@@ -88,6 +119,7 @@ def clean(conf_file, proj_dir):
             os.remove(os.path.join(proj_dir, i))
         except OSError:
             pass
+    print("Temp files cleaned for project ", proj_dir)
 
 if __name__ == '__main__':
     aparse = argparse.ArgumentParser(description='FPGAOL CaaS Wizard')
