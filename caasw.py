@@ -9,7 +9,7 @@ from pathlib import Path
 local_server = 'http://127.0.0.1:18888/'
 upload_file = '.caas_upload.zip'
 download_file = '.caas_result.zip'
-caas_conf_file = '.caas.conf'
+caas_armed_file = '.caas.conf'
 jobid_file = '.jobid'
 api_url = '/submit'
 top_default = 'top'
@@ -63,11 +63,11 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
     sources = caas_conf['project'].get('sources', sources_default)
     misc = caas_conf['project'].get('misc', misc_default)
     print("Copy config file...")
-    os.system("cp -v " + conf_file + ' ' + os.path.join(proj_dir, caas_conf_file))
+    os.system("cp -v " + conf_file + ' ' + os.path.join(proj_dir, caas_armed_file))
     print("Archive project...")
     ret = os.system('cd ' + proj_dir + ' && \
             zip -FSr ' + upload_file + ' ' + \
-            caas_conf_file + ' ' + constraint + ' ' + sources + ' ' + misc)
+            caas_armed_file + ' ' + constraint + ' ' + sources + ' ' + misc)
     if ret != 0:
         print("Error archiving project!")
         sys.exit(1)
@@ -81,6 +81,13 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
         print("Use a new random jobID " + jobid)
         with open(jobidfile, 'w') as f:
             f.write(jobid)
+
+def clean(conf_file, proj_dir):
+    for i in [upload_file, download_file, jobid_file, caas_armed_file]:
+        try:
+            os.remove(os.path.join(proj_dir, i))
+        except OSError:
+            pass
 
 if __name__ == '__main__':
     aparse = argparse.ArgumentParser(description='FPGAOL CaaS Wizard')
@@ -112,6 +119,8 @@ if __name__ == '__main__':
         mfgen(conf_file, proj_dir, mfgen_makefile, mfgen_script, mfgen_overwrite)
     elif op == 'submit':
         submit(conf_file, proj_dir, submit_dryrun, submit_newjobid)
+    elif op == 'clean':
+        clean(conf_file, proj_dir)
     else:
         print('Unknown OP:', op)
         sys.exit(1)
