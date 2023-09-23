@@ -3,8 +3,8 @@ CHIPDB = /chipdb
 
 BUILDDIR := ${CURDIR}/build
 TOP := __CAAS_TOP
-SOURCES := __CAAS_SOURCES
-XDC := __CAAS_XDC
+SOURCES := $(wildcard __CAAS_SOURCES)
+XDC := $(wildcard __CAAS_XDC)
 
 CHIPFAM := __CAAS_FAMILY
 PART := __CAAS_PART
@@ -14,7 +14,7 @@ LOGFILE := ${BUILDDIR}/top.log
 all: ${BUILDDIR}/top.bit
 
 ${BUILDDIR}:
-	mkdir -p 777 -p ${BUILDDIR} && chown -R nobody ${BUILDDIR}
+	mkdir -p 777 -p ${BUILDDIR} && chown -R nobody ${BUILDDIR} | true
 
 ${BUILDDIR}/top.json: ${SOURCES}
 	cd ${BUILDDIR} && yosys -p "synth_xilinx -flatten -abc9 -arch xc7 -top ${TOP}; write_json top.json" $< >> ${LOGFILE} 2>&1

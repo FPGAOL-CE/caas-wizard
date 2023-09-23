@@ -18,7 +18,7 @@ ${BUILDDIR}/vivado.tcl: ${BUILDDIR}
 	cat << EOF > $@
 	# vivado.tcl generated for caas
 	# can be launched from any directory
-	cd ${CURDIR}/build
+	cd ${BUILDDIR}
 	create_project -part __CAAS_PART -force v_proj
 	set_property target_language Verilog [current_project]
 	cd ..
@@ -36,7 +36,7 @@ ${BUILDDIR}/vivado.tcl: ${BUILDDIR}
 	EOF
 
 ${BUILDDIR}/${TOP}.bit: ${BUILDDIR}/vivado.tcl
-	cd build && vivado -mode batch -source $< > ${LOGFILE} 2>&1
+	cd ${BUILDDIR} && vivado -mode batch -source $< > ${LOGFILE} 2>&1
 
 .PHONY: clean
 clean:
