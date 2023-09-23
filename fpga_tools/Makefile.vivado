@@ -1,9 +1,9 @@
 BUILDDIR := ${CURDIR}/build
-TOP := __CAAS_TOP
-SOURCES := __CAAS_SOURCES
-XDC := __CAAS_XDC
+# TOP := __CAAS_TOP
+# SOURCES := $(wildcard __CAAS_SOURCES)
+# XDC := $(wildcard __CAAS_XDC)
 
-PART := __CAAS_PART
+# PART := __CAAS_PART
 
 LOGFILE := ${BUILDDIR}/top.log
 
@@ -11,16 +11,32 @@ LOGFILE := ${BUILDDIR}/top.log
 all: ${BUILDDIR}/${TOP}.bit
 
 ${BUILDDIR}:
-	mkdir -m 777 -p ${BUILDDIR} && chown -R nobody ${BUILDDIR}
+	mkdir -m 777 -p ${BUILDDIR} && chown -R nobody ${BUILDDIR} | true
 
-${BUILDDIR}/vivado.tcl:
+.ONESHELL: 
+${BUILDDIR}/vivado.tcl: ${BUILDDIR}
 	cat << EOF > $@
-# vivado.tcl generated for caas
-EOF
-
+	# vivado.tcl generated for caas
+	# can be launched from any directory
+	cd ${CURDIR}/build
+	create_project -part __CAAS_PART -force v_proj
+	set_property target_language Verilog [current_project]
+	cd ..
+	read_verilog [glob __CAAS_SOURCES]
+	read_xdc [glob __CAAS_XDC]
+	cd build
+	synth_design -top __CAAS_TOP
+	opt_design
+	place_design
+	phys_opt_design
+	route_design
+	write_bitstream -verbose -force __CAAS_TOP.bit
+	report_utilization -file util.rpt
+	report_timing_summary -file timing.rpt
+	EOF
 
 ${BUILDDIR}/${TOP}.bit: ${BUILDDIR}/vivado.tcl
-	vivado -mode batch $< > ${LOGFILE} 2>&1
+	cd build && vivado -mode batch -source $< > ${LOGFILE} 2>&1
 
 .PHONY: clean
 clean:
