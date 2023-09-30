@@ -1,7 +1,9 @@
-BUILDDIR := ${CURDIR}/build
+# F4PGA support will be delayed
+#BUILDDIR := ${CURDIR}/build
+BUILDDIR := ${CURDIR}
 TOP := __CAAS_TOP
-SOURCES := __CAAS_SOURCES
-XDC := __CAAS_XDC
+SOURCES := $(wildcard __CAAS_SOURCES)
+XDC := $(wildcard __CAAS_XDC)
 
 DEVICE := __CAAS_F4PGA_DEVICE
 BITSTREAM_DEVICE := __CAAS_FAMILY
@@ -12,28 +14,28 @@ XDC_CMD := -x ${XDC}
 LOGFILE := ${BUILDDIR}/top.log
 
 # Build design
-all: ${BUILDDIR}/${TOP}.bit
+all: ${BUILDDIR} ${BUILDDIR}/${TOP}.bit
 
 ${BUILDDIR}:
-	mkdir -m 777 -p ${BUILDDIR} && chown -R nobody ${BUILDDIR}
+	mkdir -m 777 -p ${BUILDDIR} && chown -R nobody ${BUILDDIR} | true
 
 ${BUILDDIR}/${TOP}.eblif: | ${BUILDDIR}
 	cd ${BUILDDIR} && symbiflow_synth -t ${TOP} -v ${SOURCES} -d ${BITSTREAM_DEVICE} -p ${PARTNAME} ${XDC_CMD} > ${LOGFILE} 2>&1
 
 ${BUILDDIR}/${TOP}.net: ${BUILDDIR}/${TOP}.eblif
-	cd ${BUILDDIR} && symbiflow_pack -e ${TOP}.eblif -d ${DEVICE} ${SDC_CMD} >> ${LOGFILE} 2>&1
+	cd ${BUILDDIR} && symbiflow_pack -e ${BUILDDIR}/${TOP}.eblif -d ${DEVICE} ${SDC_CMD} >> ${LOGFILE} 2>&1
 
 ${BUILDDIR}/${TOP}.place: ${BUILDDIR}/${TOP}.net
-	cd ${BUILDDIR} && symbiflow_place -e ${TOP}.eblif -d ${DEVICE} ${PCF_CMD} -n ${TOP}.net -P ${PARTNAME} ${SDC_CMD} >> ${LOGFILE} 2>&1
+	cd ${BUILDDIR} && symbiflow_place -e ${BUILDDIR}/${TOP}.eblif -d ${DEVICE} ${PCF_CMD} -n ${BUILDDIR}/${TOP}.net -P ${PARTNAME} ${SDC_CMD} >> ${LOGFILE} 2>&1
 
 ${BUILDDIR}/${TOP}.route: ${BUILDDIR}/${TOP}.place
-	cd ${BUILDDIR} && symbiflow_route -e ${TOP}.eblif -d ${DEVICE} ${SDC_CMD} >> ${LOGFILE} 2>&1
+	cd ${BUILDDIR} && symbiflow_route -e ${BUILDDIR}/${TOP}.eblif -d ${DEVICE} ${SDC_CMD} >> ${LOGFILE} 2>&1
 
 ${BUILDDIR}/${TOP}.fasm: ${BUILDDIR}/${TOP}.route
-	cd ${BUILDDIR} && symbiflow_write_fasm -e ${TOP}.eblif -d ${DEVICE} >> ${LOGFILE} 2>&1
+	cd ${BUILDDIR} && symbiflow_write_fasm -e ${BUILDDIR}/${TOP}.eblif -d ${DEVICE} >> ${LOGFILE} 2>&1
 
 ${BUILDDIR}/${TOP}.bit: ${BUILDDIR}/${TOP}.fasm
-	cd ${BUILDDIR} && symbiflow_write_bitstream -d ${BITSTREAM_DEVICE} -f ${TOP}.fasm -p ${PARTNAME} -b ${TOP}.bit >> ${LOGFILE} 2>&1
+	cd ${BUILDDIR} && symbiflow_write_bitstream -d ${BITSTREAM_DEVICE} -f ${BUILDDIR}/${TOP}.fasm -p ${PARTNAME} -b ${BUILDDIR}/${TOP}.bit >> ${LOGFILE} 2>&1
 
 clean:
 	rm -rf ${BUILDDIR}
