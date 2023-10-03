@@ -29,7 +29,7 @@ def getjobid():
 # this runs on the compiling server
 def mfgen(conf_file, proj_dir, makefile, script, overwrite):
     if overwrite == False and (os.path.isfile(script) or os.path.isfile(makefile)):
-        print('File existing! Use --overwrite to overwrite')
+        print('File exist! Use --overwrite to overwrite')
         sys.exit(1)
     caas_conf = configparser.ConfigParser()
     caas_conf.read(conf_file)
@@ -70,15 +70,17 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
     os.system("cp -v " + mf_t + " " + mf)
     os.system("cp -v " + sh_t + " " + sh)
     print("Patching build files...")
+    srcwildcard = ""
+    for s in sources.replace("/", "\/").split(","):
+        srcwildcard = srcwildcard + " $(wildcard " + s + ") "
     os.system("sed -i " 
               + "-e \'s/__CAAS_TOP/" + top + "/g\' "
-              + "-e \'s/__CAAS_SOURCES/" + sources + "/g\' "
-              + "-e \'s/__CAAS_XDC/" + constraint + "/g\' "
+              + "-e \'s/__CAAS_SOURCES/" + srcwildcard + "/g\' "
+              + "-e \'s/__CAAS_XDC/" + constraint.replace("/", "\/") + "/g\' "
               + "-e \'s/__CAAS_PART/" + part + "/g\' "
               + "-e \'s/__CAAS_FAMILY/" + family + "/g\' "
               + "-e \'s/__CAAS_F4PGA_DEVICE/" + f4pga_device + "/g\' "
               + mf)
-    # TODO: wildcard makefile handling
 
 def submit(conf_file, proj_dir, dryrun, newjobid):
     print(term_white + "Preparing payload for project..." + term_orig)
@@ -107,7 +109,7 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
         with open(jobidfile, 'w') as f:
             f.write(jobid)
     if dryrun:
-        print("Stop here for dryrun.")
+        print("Dryrun, stop here.")
         return
     print(term_white + "Upload to compiling server..." + term_orig)
     server = caas_conf['caas'].get('server', local_server)

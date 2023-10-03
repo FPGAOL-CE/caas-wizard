@@ -3,7 +3,7 @@ CHIPDB = /chipdb
 
 BUILDDIR := ${CURDIR}/build
 TOP := __CAAS_TOP
-SOURCES := $(wildcard __CAAS_SOURCES)
+#SOURCES := __CAAS_SOURCES
 XDC := $(wildcard __CAAS_XDC)
 
 CHIPFAM := __CAAS_FAMILY
@@ -18,8 +18,8 @@ ${BUILDDIR}:
 
 # we run this in parent directory to seeminglessly import user source files
 # otherwise have to parse user pattern and add ../
-${BUILDDIR}/top.json: ${SOURCES}
-	yosys -p "synth_xilinx -flatten -abc9 -arch xc7 -top ${TOP}; write_json ${BUILDDIR}/top.json" $< >> ${LOGFILE} 2>&1
+${BUILDDIR}/top.json: __CAAS_SOURCES
+	yosys -p "synth_xilinx -flatten -abc9 -arch xc7 -top ${TOP}; write_json ${BUILDDIR}/top.json" $^ >> ${LOGFILE} 2>&1
 
 # The chip database only needs to be generated once
 # that is why we don't clean it with make clean
