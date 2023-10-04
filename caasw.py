@@ -71,8 +71,11 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
     os.system("cp -v " + sh_t + " " + sh)
     print("Patching build files...")
     srcwildcard = ""
-    for s in sources.replace("/", "\/").split(","):
-        srcwildcard = srcwildcard + " $(wildcard " + s + ") "
+    if backend != 'vivado':
+        for s in sources.replace("/", "\/").split(","):
+            srcwildcard = srcwildcard + " $(wildcard " + s + ") "
+    else:
+        srcwildcard = sources.replace("/", "\/").replace(",", " ")
     os.system("sed -i " 
               + "-e \'s/__CAAS_TOP/" + top + "/g\' "
               + "-e \'s/__CAAS_SOURCES/" + srcwildcard + "/g\' "
