@@ -97,7 +97,7 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
     print("Archive project...")
     ret = os.system('cd ' + proj_dir + ' && \
             zip -FSr ' + upload_file + ' ' + \
-            caas_armed_file + ' ' + constraint + ' ' + sources + ' ' + misc)
+            caas_armed_file + ' ' + constraint.replace(",", " ") + ' ' + sources.replace(",", " ") + ' ' + misc.replace(",", " "))
     if ret != 0:
         print("Error archiving project!")
         sys.exit(1)
