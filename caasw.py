@@ -4,7 +4,8 @@ import os
 import argparse
 import configparser
 import random
-from pathlib import Path
+import requests
+import urllib.parse
 
 local_server = 'http://127.0.0.1:18888/'
 upload_file = '.caas_upload.zip'
@@ -114,9 +115,21 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
     if dryrun:
         print("Dryrun, stop here.")
         return
-    print(term_white + "Upload to compiling server..." + term_orig)
+    print(term_white + "Submitting to compiling server..." + term_orig)
     server = caas_conf['caas'].get('server', local_server)
     print("Using server at " + server)
+    server_api = urllib.parse.urljoin(server, 'submit')
+    try:
+        response = requests.post(server_api, data={'inputJobId': jobid}, files={'inputZipFile': ('job.zip', open(os.path.join(proj_dir, upload_file), 'rb'), 'application/zip')})
+    except Exception as e:
+        print("Exception occured when communicating with server: ", e)
+        return
+
+    if response.status_code == 200:
+        print("POST sucessful.")
+        print(response.text)
+    else:
+        print("POST failed with code", response.status_code)
 
 def clean(conf_file, proj_dir):
     for i in [upload_file, download_file, jobid_file, caas_armed_file]:
