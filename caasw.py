@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import sys
 import os
+import time
+import random
 import argparse
 import configparser
-import random
 import requests
 import urllib.parse
+import json
 
 local_server = 'http://127.0.0.1:18888/'
 upload_file = '.caas_upload.zip'
@@ -118,18 +120,50 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
     print(term_white + "Submitting to compiling server..." + term_orig)
     server = caas_conf['caas'].get('server', local_server)
     print("Using server at " + server)
-    server_api = urllib.parse.urljoin(server, 'submit')
+    server_submit = urllib.parse.urljoin(server, 'submit')
+    server_status = urllib.parse.urljoin(server, 'status/' + str(jobid))
     try:
-        response = requests.post(server_api, data={'inputJobId': jobid}, files={'inputZipFile': ('job.zip', open(os.path.join(proj_dir, upload_file), 'rb'), 'application/zip')})
+        response = requests.post(server_submit,
+                                 data={'inputJobId': jobid},
+                                 files={'inputZipFile': ('job.zip',
+                                                         open(os.path.join(proj_dir, upload_file), 'rb'),
+                                                         'application/zip')})
     except Exception as e:
         print("Exception occured when communicating with server: ", e)
         return
 
     if response.status_code == 200:
-        print("POST sucessful.")
-        print(response.text)
+        print("POST done.")
+        reply = json.loads(response.text)
+        if reply['code'] == '0':
+            print("Compilation cannot be submitted: ", reply['msg'])
+            return
+        else:
+            print(term_white + "Compilation submitted, now quering result..." + term_orig)
     else:
         print("POST failed with code", response.status_code)
+        return
+
+    status = 'undefined'
+    success = 0
+    while True: 
+        time.sleep(2)
+        try:
+            response = requests.get(server_status)
+        except Exception as e:
+            print("Exception occured when communicating with server: ", e)
+            continue
+        if response.status_code == 200:
+            print("Status query: ", response.text)
+            if not 'running' in response.text:
+                status = response.text
+                break
+        else:
+            print("Status query GET failed with code", response.status_code)
+            continue
+
+    success = 'succeeded' in status
+    print(term_white + "Compilation " + ("succeeded" if success else "failed") + ". " + term_orig)
 
 def clean(conf_file, proj_dir):
     for i in [upload_file, download_file, jobid_file, caas_armed_file]:
