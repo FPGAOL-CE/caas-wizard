@@ -146,8 +146,15 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
 
     status = 'undefined'
     success = 0
+    interval = 2
+    count = 0
     while True: 
-        time.sleep(2)
+        count = count + 1
+        if count > 3:
+            interval = 5
+        elif count > 6:
+            interval = 10
+        time.sleep(interval)
         try:
             response = requests.get(server_status)
         except Exception as e:
