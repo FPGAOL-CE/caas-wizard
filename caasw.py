@@ -14,6 +14,9 @@ upload_file = '.caas_upload.zip'
 download_file = '.caas_result.zip'
 caas_armed_file = '.caas.conf'
 jobid_file = '.jobid'
+result_dir = 'build'
+result_log_name = 'top.log'
+result_bit_name = 'top.bit'
 api_url = '/submit'
 top_default = 'top'
 constraint_default = '*.xdc'
@@ -88,6 +91,9 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
               + "-e \'s/__CAAS_F4PGA_DEVICE/" + f4pga_device + "/g\' "
               + mf)
 
+def requestexp(e):
+    print("Exception occured when communicating with server: ", e)
+
 def submit(conf_file, proj_dir, dryrun, newjobid):
     print(term_white + "Preparing payload for project..." + term_orig)
     caas_conf = configparser.ConfigParser()
@@ -122,6 +128,8 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
     print("Using server at " + server)
     server_submit = urllib.parse.urljoin(server, 'submit')
     server_status = urllib.parse.urljoin(server, 'status/' + str(jobid))
+    server_bit_dl = urllib.parse.urljoin(server, 'download/' + str(jobid) + '/bitstream')
+    server_log_dl = urllib.parse.urljoin(server, 'download/' + str(jobid) + '/log')
     try:
         response = requests.post(server_submit,
                                  data={'inputJobId': jobid},
@@ -129,7 +137,7 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
                                                          open(os.path.join(proj_dir, upload_file), 'rb'),
                                                          'application/zip')})
     except Exception as e:
-        print("Exception occured when communicating with server: ", e)
+        requestexp(e)
         return
 
     if response.status_code == 200:
@@ -145,20 +153,24 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
         return
 
     status = 'undefined'
-    success = 0
     interval = 2
     count = 0
+    errcnt = 0
     while True: 
         count = count + 1
         if count > 3:
             interval = 5
         elif count > 6:
             interval = 10
+        if errcnt > 3:
+            print(term_white + "Network error when fetching result." + term_orig)
+            return
         time.sleep(interval)
         try:
             response = requests.get(server_status)
         except Exception as e:
-            print("Exception occured when communicating with server: ", e)
+            requestexp(e)
+            errcnt = errcnt + 1
             continue
         if response.status_code == 200:
             print("Status query: ", response.text)
@@ -167,10 +179,46 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
                 break
         else:
             print("Status query GET failed with code", response.status_code)
+            errcnt = errcnt + 1
             continue
 
     success = 'succeeded' in status
-    print(term_white + "Compilation " + ("succeeded" if success else "failed") + ". " + term_orig)
+    if not success:
+        print(term_white + "Compilation failed." + term_orig)
+    else:
+        print(term_white + "Compilation succeeded, fetching result..." + term_orig)
+
+    try:
+        response = requests.get(server_log_dl)
+        if response.status_code == 200:
+            result_dir_abs = os.path.join(proj_dir, result_dir)
+            if not os.path.exists(result_dir_abs):
+                os.makedirs(result_dir_abs)
+            with open(os.path.join(result_dir_abs, result_log_name), "wb") as f:
+                f.write(response.content)
+            print(term_white + "Log downloaded." + term_orig)
+        else:
+            print("Request failed: ", response.status_status)
+    except Exception as e:
+        requestexp(e)
+
+    if not success:
+        return
+
+    try:
+        response = requests.get(server_bit_dl)
+        if response.status_code == 200:
+            result_dir_abs = os.path.join(proj_dir, result_dir)
+            if not os.path.exists(result_dir_abs):
+                os.makedirs(result_dir_abs)
+            with open(os.path.join(result_dir_abs, result_bit_name), "wb") as f:
+                f.write(response.content)
+            print(term_white + "Bitstream downloaded." + term_orig)
+        else:
+            print("Request failed: ", response.status_status)
+    except Exception as e:
+        requestexp(e)
+
 
 def clean(conf_file, proj_dir):
     for i in [upload_file, download_file, jobid_file, caas_armed_file]:
