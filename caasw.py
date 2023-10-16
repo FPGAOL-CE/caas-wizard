@@ -8,6 +8,7 @@ import configparser
 import requests
 import urllib.parse
 import json
+from pathlib import Path
 
 local_server = 'http://127.0.0.1:18888/'
 upload_file = '.caas_upload.zip'
