@@ -27,8 +27,72 @@ misc_default = ''
 term_white = "\033[37m"
 term_orig = "\033[0m"
 
-GENERIC_MF_NAME = 'Makefile'
-GENERIC_SH_NAME = 'run.sh'
+GENERIC_MF_NAME = 'Makefile.caas'
+GENERIC_SH_NAME = 'run_caas.sh'
+
+def xc7family_derive(part, backend):
+    family = 'invalid'
+    if 'xc7s' in part:
+        family = 'spartan7'
+    elif 'xc7a' in part:
+        family = 'artix7'
+    elif 'xc7k' in part:
+        family = 'kintex7'
+    elif 'xc7v' in part:
+        family = 'virtex7'
+    elif 'xc7z' in part:
+        family = 'zynq7'
+    print("7-series FPGA family derived to be " + family)
+    return family
+
+def f4pga_device_derive(part, backend):
+    f4pga_device = 'invalid'
+    if backend == 'f4pga':
+        if 'xc7z' in part:
+            f4pga_device = part[:7] + '_test' # now seems xc7z010 only
+        else:
+            f4pga_device = part[:part.find('t')+1] + '_test'
+        print("F4PGA device name derived to be " + f4pga_device)
+    return f4pga_device
+
+def ecp5_derive(part, backend):
+    ecp5_part = 'invalid'
+    ecp5_package = 'invalid'
+    if backend == 'yosyshq' and 'lfe5' in part:
+        prefix = 'um5g-' if 'um5g' in part else 'um-' if 'um' in part else ''
+        size = ''
+        if '12f' in part:
+            size = '12k'
+        elif '25f' in part:
+            size = '25k'
+        elif '45f' in part:
+            size = '45k'
+        elif '85k' in part:
+            size = '85k'
+        ecp5_part = prefix + size
+        if '256' in part:
+            ecp5_package = 'CABGA256'
+        elif '285' in part:
+            ecp5_package = 'CSFBGA285'
+        elif '381' in part:
+            ecp5_package = 'CABGA381'
+        elif '554' in part:
+            ecp5_package = 'CABGA554'
+        elif '756' in part:
+            ecp5_package = 'CABGA756'
+        elif '144' in part:
+            ecp5_package = 'TQFP144'
+    return (ecp5_part, ecp5_package)
+
+def ice40_derive(part, backend):
+    ice40_part = 'invalid'
+    ice40_package = 'invalid'
+    if backend == 'yosyshq' and 'ice40' in part:
+        ice40_part = part[5:part.find('-')]
+        if ice40_part[0] == 'p':
+            ice40_part[0] = 'u'
+        ice40_package = part[part.find('-')+1:]
+    return (ice40_part, ice40_package)
 
 def getjobid():
     return '%08x' % random.randrange(16**8)
@@ -45,39 +109,34 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
     top = caas_conf['project'].get('top', top_default)
     constraint = caas_conf['project'].get('constraint', constraint_default)
     sources = caas_conf['project'].get('sources', sources_default)
+
     # We don't need to cover all cases, just let error happen later stage
-    # deriving family from part name
-    family = 'invalid'
-    if 'xc7s' in part:
-        family = 'spartan7'
-    elif 'xc7a' in part:
-        family = 'artix7'
-    elif 'xc7k' in part:
-        family = 'kintex7'
-    elif 'xc7v' in part:
-        family = 'virtex7'
-    elif 'xc7z' in part:
-        family = 'zynq7'
-    print("FPGA family derived to be " + family)
+
+    # deriving family from part name for 7-series
+    xc7family = xc7family_derive(part, backend)
+
     # deriving F4PGA DEVICE from part name
-    f4pga_device = 'invalid'
-    if backend == 'f4pga':
-        if 'xc7z' in part:
-            f4pga_device = part[:7] + '_test' # now seems xc7z010 only
-        else:
-            f4pga_device = part[:part.find('t')+1] + '_test'
-        print("F4PGA device name derived to be " + f4pga_device)
+    f4pga_device = f4pga_device_derive(part, backend)
+    
+    # deriving ecp5 compilation options
+    ecp5_part, ecp5_package = ecp5_derive(part, backend)
+
+    # deriving ice40 compilation options
+    ice40_part, ice40_package = ice40_derive(part, backend)
+
     # copy the template files
+    print("Copy build files...")
     tools_dir = os.path.join(Path(__file__).parent.absolute(), 'fpga_tools')
     mf_t = os.path.join(tools_dir, 'Makefile.' + backend)
     sh_t = os.path.join(tools_dir, backend + '.sh')
     mf = os.path.join(proj_dir, GENERIC_MF_NAME)
     sh = os.path.join(proj_dir, GENERIC_SH_NAME)
-    print("Copy build files...")
     os.system("cp -v " + mf_t + " " + mf)
     os.system("cp -v " + sh_t + " " + sh)
+
     print("Patching build files...")
     srcwildcard = ""
+    # only vivado backend is tcl-based, others are just makefiles
     if backend != 'vivado':
         for s in sources.replace("/", "\/").split(","):
             srcwildcard = srcwildcard + " $(wildcard " + s + ") "
@@ -88,8 +147,12 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
               + "-e \'s/__CAAS_SOURCES/" + srcwildcard + "/g\' "
               + "-e \'s/__CAAS_XDC/" + constraint.replace("/", "\/") + "/g\' "
               + "-e \'s/__CAAS_PART/" + part + "/g\' "
-              + "-e \'s/__CAAS_FAMILY/" + family + "/g\' "
+              + "-e \'s/__CAAS_FAMILY/" + xc7family + "/g\' "
               + "-e \'s/__CAAS_F4PGA_DEVICE/" + f4pga_device + "/g\' "
+              + "-e \'s/__CAAS_ECP5_PART/" + ecp5_part + "/g\' "
+              + "-e \'s/__CAAS_ECP5_PACKAGE/" + ecp5_package + "/g\' "
+              + "-e \'s/__CAAS_ICE40_PART/" + ice40_part + "/g\' "
+              + "-e \'s/__CAAS_ICE40_PACKAGE/" + ice40_package + "/g\' "
               + mf)
 
 def requestexp(e):
