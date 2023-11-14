@@ -58,7 +58,7 @@ def f4pga_device_derive(part, backend):
 def ecp5_derive(part, backend):
     ecp5_part = 'invalid'
     ecp5_package = 'invalid'
-    if backend == 'yosyshq' and 'lfe5' in part:
+    if backend == 'ecp5' and 'lfe5' in part:
         prefix = 'um5g-' if 'um5g' in part else 'um-' if 'um' in part else ''
         size = ''
         if '12f' in part:
@@ -87,7 +87,7 @@ def ecp5_derive(part, backend):
 def ice40_derive(part, backend):
     ice40_part = 'invalid'
     ice40_package = 'invalid'
-    if backend == 'yosyshq' and 'ice40' in part:
+    if backend == 'ice40' and 'ice40' in part:
         ice40_part = part[5:part.find('-')]
         if ice40_part[0] == 'p':
             ice40_part[0] = 'u'

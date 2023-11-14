@@ -15,7 +15,7 @@ ${BUILDDIR}/top.json: __CAAS_SOURCES
 ${BUILDDIR}/top.asc: ${BUILDDIR}/top.json
 	nextpnr-ice40 --json $< --asc $@ --__CAAS_ICE40_PART --package __CAAS_ICE40_PACKAGE --pcf ${XDC} >> ${LOGFILE} 2>&1
 	
-${BUILDDIR}/top.bit: ${BUILDDIR}/top_out.config
+${BUILDDIR}/top.bit: ${BUILDDIR}/top.asc
 	icepack $< $@ >> ${LOGFILE} 2>&1
 
 .PHONY: clean
