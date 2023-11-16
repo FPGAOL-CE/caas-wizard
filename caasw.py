@@ -5,7 +5,6 @@ import time
 import random
 import argparse
 import configparser
-import requests
 import urllib.parse
 import json
 from pathlib import Path
@@ -18,7 +17,9 @@ jobid_file = '.jobid'
 result_dir = 'build'
 result_log_name = 'top.log'
 result_bit_name = 'top.bit'
-api_url = '/submit'
+# api_url = '/submit'
+
+# the default entries, these are important
 top_default = 'top'
 constraint_default = '*.xdc'
 sources_default = '*.v'
@@ -27,11 +28,13 @@ misc_default = ''
 term_white = "\033[37m"
 term_orig = "\033[0m"
 
+SEDEXEC = 'gsed' if sys.platform == 'darwin' else 'sed'
+
 GENERIC_MF_NAME = 'Makefile.caas'
 GENERIC_SH_NAME = 'run_caas.sh'
 
 def xc7family_derive(part, backend):
-    family = 'invalid'
+    family = ''
     if 'xc7s' in part:
         family = 'spartan7'
     elif 'xc7a' in part:
@@ -46,7 +49,7 @@ def xc7family_derive(part, backend):
     return family
 
 def f4pga_device_derive(part, backend):
-    f4pga_device = 'invalid'
+    f4pga_device = ''
     if backend == 'f4pga':
         if 'xc7z' in part:
             f4pga_device = part[:7] + '_test' # now seems xc7z010 only
@@ -56,8 +59,8 @@ def f4pga_device_derive(part, backend):
     return f4pga_device
 
 def ecp5_derive(part, backend):
-    ecp5_part = 'invalid'
-    ecp5_package = 'invalid'
+    ecp5_part = ''
+    ecp5_package = ''
     if backend == 'ecp5' and 'lfe5' in part:
         prefix = 'um5g-' if 'um5g' in part else 'um-' if 'um' in part else ''
         size = ''
@@ -85,8 +88,8 @@ def ecp5_derive(part, backend):
     return (ecp5_part, ecp5_package)
 
 def ice40_derive(part, backend):
-    ice40_part = 'invalid'
-    ice40_package = 'invalid'
+    ice40_part = ''
+    ice40_package = ''
     if backend == 'ice40' and 'ice40' in part:
         ice40_part = part[5:part.find('-')]
         if ice40_part[0] == 'p':
@@ -110,7 +113,7 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
     constraint = caas_conf['project'].get('constraint', constraint_default)
     sources = caas_conf['project'].get('sources', sources_default)
 
-    # We don't need to cover all cases, just let error happen later stage
+    # We don't need to cover all cases, "bad" cases just return empty
 
     # deriving family from part name for 7-series
     xc7family = xc7family_derive(part, backend)
@@ -142,7 +145,7 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
             srcwildcard = srcwildcard + " $(wildcard " + s + ") "
     else:
         srcwildcard = sources.replace("/", "\/").replace(",", " ")
-    os.system("sed -i " 
+    os.system(SEDEXEC + " -i " 
               + "-e \'s/__CAAS_TOP/" + top + "/g\' "
               + "-e \'s/__CAAS_SOURCES/" + srcwildcard + "/g\' "
               + "-e \'s/__CAAS_XDC/" + constraint.replace("/", "\/") + "/g\' "
@@ -159,6 +162,7 @@ def requestexp(e):
     print("Exception occured when communicating with server: ", e)
 
 def submit(conf_file, proj_dir, dryrun, newjobid):
+    import requests
     print(term_white + "Preparing payload for project..." + term_orig)
     caas_conf = configparser.ConfigParser()
     caas_conf.read(conf_file)
@@ -284,8 +288,8 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
         requestexp(e)
 
 
-def clean(conf_file, proj_dir):
-    for i in [upload_file, download_file, jobid_file, caas_armed_file]:
+def clean(proj_dir):
+    for i in [upload_file, download_file, jobid_file, caas_armed_file, GENERIC_MF_NAME, GENERIC_SH_NAME]:
         try:
             os.remove(os.path.join(proj_dir, i))
         except OSError:
@@ -295,8 +299,8 @@ def clean(conf_file, proj_dir):
 if __name__ == '__main__':
     aparse = argparse.ArgumentParser(description='FPGAOL CaaS Wizard')
     aparse.add_argument('op', metavar='OP', type=str, nargs=1, help='Type of operation: mfgen, submit, clean')
-    aparse.add_argument('--makefile', action='store', default='Makefile', help='mfgen - Name of generated Makefile')
-    aparse.add_argument('--script', action='store', default='run.sh', help='mfgen - Name of generated compile script')
+    aparse.add_argument('--makefile', action='store', default='Makefile.caas', help='mfgen - Name of generated Makefile')
+    aparse.add_argument('--script', action='store', default='run_caas.sh', help='mfgen - Name of generated compile script')
     aparse.add_argument('--overwrite', action='store_const', const=True, default=False, help='mfgen - Overwrite existing files')
     aparse.add_argument('--dryrun', action='store_const', const=True, default=False, help='submit - Prepare submission files but do not upload')
     aparse.add_argument('--newjobid', action='store_const', const=True, default=False, help='submit - Use a new random jobID')
@@ -312,6 +316,9 @@ if __name__ == '__main__':
     mfgen_overwrite = args.overwrite
     submit_dryrun = args.dryrun
     submit_newjobid = args.newjobid
+    if op == 'clean':
+        clean(proj_dir)
+        sys.exit(0)
     if not os.path.isfile(conf_file):
         print('Configuration file %s not found!' % conf_file)
         sys.exit(1)
@@ -322,8 +329,6 @@ if __name__ == '__main__':
         mfgen(conf_file, proj_dir, mfgen_makefile, mfgen_script, mfgen_overwrite)
     elif op == 'submit':
         submit(conf_file, proj_dir, submit_dryrun, submit_newjobid)
-    elif op == 'clean':
-        clean(conf_file, proj_dir)
     else:
         print('Unknown OP:', op)
         sys.exit(1)
