@@ -1,6 +1,5 @@
 BUILDDIR := ${CURDIR}/build
 TOP := __CAAS_TOP
-XDC := $(wildcard __CAAS_XDC)
 
 LOGFILE := ${BUILDDIR}/top.log
 
@@ -12,8 +11,8 @@ ${BUILDDIR}:
 ${BUILDDIR}/top.json: __CAAS_SOURCES
 	yosys -p "synth_ice40 -top ${TOP} -json $@" $^ >> ${LOGFILE} 2>&1
 
-${BUILDDIR}/top.asc: ${BUILDDIR}/top.json
-	nextpnr-ice40 --json $< --asc $@ --__CAAS_ICE40_PART --package __CAAS_ICE40_PACKAGE --pcf ${XDC} >> ${LOGFILE} 2>&1
+${BUILDDIR}/top.asc: ${BUILDDIR}/top.json __CAAS_XDC
+	nextpnr-ice40 --json $< --asc $@ --__CAAS_ICE40_PART --package __CAAS_ICE40_PACKAGE --pcf $(filter-out $<,$^) >> ${LOGFILE} 2>&1
 	
 ${BUILDDIR}/top.bit: ${BUILDDIR}/top.asc
 	icepack $< $@ >> ${LOGFILE} 2>&1

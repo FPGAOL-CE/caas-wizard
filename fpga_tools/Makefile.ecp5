@@ -1,6 +1,5 @@
 BUILDDIR := ${CURDIR}/build
 TOP := __CAAS_TOP
-XDC := $(wildcard __CAAS_XDC)
 
 LOGFILE := ${BUILDDIR}/top.log
 
@@ -12,8 +11,8 @@ ${BUILDDIR}:
 ${BUILDDIR}/top.json: __CAAS_SOURCES
 	yosys -p "synth_ecp5 -top ${TOP} -json $@" $^ >> ${LOGFILE} 2>&1
 
-${BUILDDIR}/top_out.config: ${BUILDDIR}/top.json
-	nextpnr-ecp5 --json $< --textcfg $@ --__CAAS_ECP5_PART --package __CAAS_ECP5_PACKAGE --lpf ${XDC} >> ${LOGFILE} 2>&1
+${BUILDDIR}/top_out.config: ${BUILDDIR}/top.json __CAAS_XDC
+	nextpnr-ecp5 --json $< --textcfg $@ --__CAAS_ECP5_PART --package __CAAS_ECP5_PACKAGE --lpf $(filter-out $<,$^) >> ${LOGFILE} 2>&1
 	
 ${BUILDDIR}/top.bit: ${BUILDDIR}/top_out.config
 	ecppack $< $@ >> ${LOGFILE} 2>&1

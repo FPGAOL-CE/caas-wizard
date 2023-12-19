@@ -21,7 +21,7 @@ result_bit_name = 'top.bit'
 
 # the default entries, these are important
 top_default = 'top'
-constraint_default = '*.xdc'
+constraint_default = '*.xdc,*.pcf,*.lpf'
 sources_default = '*.v'
 misc_default = ''
 
@@ -138,17 +138,20 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
     os.system("cp -v " + sh_t + " " + sh)
 
     print("Patching build files...")
-    srcwildcard = ""
     # only vivado backend is tcl-based, others are just makefiles
+    srcwildcard = ""
     if backend != 'vivado':
         for s in sources.replace("/", "\/").split(","):
             srcwildcard = srcwildcard + " $(wildcard " + s + ") "
     else:
         srcwildcard = sources.replace("/", "\/").replace(",", " ")
+    constraintwildcard = ""
+    for s in constraint.replace("/", "\/").split(","):
+        constraintwildcard = constraintwildcard + " $(wildcard " + s + ") "
     os.system(SEDEXEC + " -i " 
               + "-e \'s/__CAAS_TOP/" + top + "/g\' "
               + "-e \'s/__CAAS_SOURCES/" + srcwildcard + "/g\' "
-              + "-e \'s/__CAAS_XDC/" + constraint.replace("/", "\/") + "/g\' "
+              + "-e \'s/__CAAS_XDC/" + constraintwildcard + "/g\' "
               + "-e \'s/__CAAS_PART/" + part + "/g\' "
               + "-e \'s/__CAAS_FAMILY/" + xc7family + "/g\' "
               + "-e \'s/__CAAS_F4PGA_DEVICE/" + f4pga_device + "/g\' "
