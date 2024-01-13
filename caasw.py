@@ -70,7 +70,7 @@ def ecp5_derive(part, backend):
             size = '25k'
         elif '45f' in part:
             size = '45k'
-        elif '85k' in part:
+        elif '85f' in part:
             size = '85k'
         ecp5_part = prefix + size
         if '256' in part:
