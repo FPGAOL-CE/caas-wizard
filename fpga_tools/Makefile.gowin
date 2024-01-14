@@ -1,0 +1,26 @@
+BUILDDIR := ${CURDIR}/build
+TOP := __CAAS_TOP
+
+LOGFILE := ${BUILDDIR}/top.log
+
+all: ${BUILDDIR} ${BUILDDIR}/top.bit
+
+${BUILDDIR}:
+	mkdir -m 777 -p ${BUILDDIR} && chown -R nobody ${BUILDDIR} | true
+
+${BUILDDIR}/top.json: __CAAS_SOURCES
+	yosys -p "synth_gowin -top ${TOP} -json $@" $^ >> ${LOGFILE} 2>&1
+
+${BUILDDIR}/top_pnr.json: ${BUILDDIR}/top.json __CAAS_XDC
+	nextpnr-gowin --json $< --write $@ --device __CAAS_GOWIN_PART --cst $(filter-out $<,$^) >> ${LOGFILE} 2>&1
+	
+# It's .fs file, but we always use the name bit
+${BUILDDIR}/top.bit: ${BUILDDIR}/top_pnr.json
+	gowin_pack -c -d __CAAS_GOWIN_FAMILY -o $@ $< >> ${LOGFILE} 2>&1
+
+.PHONY: clean
+clean:
+	@rm -f *.bit
+	@rm -f *.frames
+	@rm -f *.fasm
+	@rm -f *.json

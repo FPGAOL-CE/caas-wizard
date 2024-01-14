@@ -21,7 +21,7 @@ result_bit_name = 'top.bit'
 
 # the default entries, these are important
 top_default = 'top'
-constraint_default = '*.xdc,*.pcf,*.lpf'
+constraint_default = '*.xdc,*.pcf,*.lpf,*.cst'
 sources_default = '*.v'
 misc_default = ''
 
@@ -97,6 +97,30 @@ def ice40_derive(part, backend):
         ice40_package = part[part.find('-')+1:]
     return (ice40_part, ice40_package)
 
+def gowin_derive(part, backend):
+    gowin_part = ''
+    gowin_family = ''
+    if backend == 'gowin' and 'GW' in part:
+        gowin_part = part
+        # parts in https://github.com/YosysHQ/apicula/blob/master/examples/Makefile
+        if part == 'GW1NR-LV9QN88PC6\/I5':
+            gowin_family = 'GW1N-9C'
+        elif part == 'GW1NSR-LV4CQN48PC7\/I6':
+            gowin_family = 'GW1NS-4'
+        elif part == 'GW1NZ-LV1QN48C6\/I5':
+            gowin_family = 'GW1NZ-1'
+        elif part == 'GW1NR-LV9QN88C6\/I5':
+            gowin_family = 'GW1N-9'
+        elif part == 'GW2A-LV18PG256C8\/I7':
+            gowin_family = 'GW2A-18'
+        elif part == 'GW1N-UV4LQ144C6\/I5':
+            gowin_family = 'GW1N-4'
+        elif part == 'GW1N-LV1QN48C6\/I5':
+            gowin_family = 'GW1N-1'
+        elif part == 'GW1NS-UX2CQN48C5\/I4':
+            gowin_family = 'GW1NS-2'
+    return (gowin_part, gowin_family)
+
 def getjobid():
     return '%08x' % random.randrange(16**8)
 
@@ -126,6 +150,9 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
 
     # deriving ice40 compilation options
     ice40_part, ice40_package = ice40_derive(part, backend)
+
+    # deriving gowin compilation options
+    gowin_part, gowin_family = gowin_derive(part, backend)
 
     # copy the template files
     print("Copy build files...")
@@ -159,6 +186,8 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
               + "-e \'s/__CAAS_ECP5_PACKAGE/" + ecp5_package + "/g\' "
               + "-e \'s/__CAAS_ICE40_PART/" + ice40_part + "/g\' "
               + "-e \'s/__CAAS_ICE40_PACKAGE/" + ice40_package + "/g\' "
+              + "-e \'s/__CAAS_GOWIN_PART/" + gowin_part + "/g\' "
+              + "-e \'s/__CAAS_GOWIN_FAMILY/" + gowin_family + "/g\' "
               + mf)
 
 def requestexp(e):

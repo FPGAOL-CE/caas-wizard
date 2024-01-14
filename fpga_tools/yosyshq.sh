@@ -7,6 +7,5 @@ fi
 
 docker run --pull never -it --rm -m 8G \
 	-v `pwd`:/mnt \
-	-v /chipdb:/chipdb \
 	--tmpfs /tmp \
 	regymm/oss-cad-suite${append} make -C /mnt -f Makefile.caas
