@@ -31,8 +31,8 @@ ${BUILDDIR}/vivado.tcl: ${BUILDDIR}
 	phys_opt_design
 	route_design
 	write_bitstream -verbose -force __CAAS_TOP.bit
-	report_utilization -file util.rpt
-	report_timing_summary -file timing.rpt
+	# report_utilization -file util.rpt
+	# report_timing_summary -file timing.rpt
 	EOF
 
 ${BUILDDIR}/${TOP}.bit: ${BUILDDIR}/vivado.tcl

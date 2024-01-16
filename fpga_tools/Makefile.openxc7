@@ -29,7 +29,7 @@ ${CHIPDB}/${PART}.bin:
 	rm -f ${PART}.bba
 
 ${BUILDDIR}/top.fasm: ${BUILDDIR}/top.json ${CHIPDB}/${PART}.bin
-	nextpnr-xilinx --chipdb ${CHIPDB}/${PART}.bin --xdc ${XDC} --json ${BUILDDIR}/top.json --fasm $@ --verbose --debug >> ${LOGFILE} 2>&1
+	nextpnr-xilinx --chipdb ${CHIPDB}/${PART}.bin --xdc ${XDC} --json ${BUILDDIR}/top.json --fasm $@ >> ${LOGFILE} 2>&1
 	
 ${BUILDDIR}/top.frames: ${BUILDDIR}/top.fasm
 	fasm2frames --part ${PART} --db-root ${DB_DIR}/${CHIPFAM} $< > $@
