@@ -8,4 +8,4 @@ fi
 docker run --pull never -it --rm -m 8G \
 	-v `pwd`:/mnt \
 	--tmpfs /tmp \
-	regymm/oss-cad-suite${append} make -C /mnt -f Makefile.caas
+	regymm/gowin-gocd${append} make -C /mnt -f Makefile.caas

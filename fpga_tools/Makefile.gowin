@@ -12,7 +12,7 @@ ${BUILDDIR}/top.json: __CAAS_SOURCES
 	yosys -p "synth_gowin -top ${TOP} -json $@" $^ >> ${LOGFILE} 2>&1
 
 ${BUILDDIR}/top_pnr.json: ${BUILDDIR}/top.json __CAAS_XDC
-	nextpnr-gowin --json $< --write $@ --device __CAAS_GOWIN_PART --cst $(filter-out $<,$^) >> ${LOGFILE} 2>&1
+	nextpnr-himbaechel --json $< --write $@ --device __CAAS_GOWIN_PART --vopt family=__CAAS_GOWIN_FAMILY --vopt cst=$(filter-out $<,$^) >> ${LOGFILE} 2>&1
 	
 # It's .fs file, but we always use the name bit
 ${BUILDDIR}/top.bit: ${BUILDDIR}/top_pnr.json
