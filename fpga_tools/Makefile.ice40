@@ -3,7 +3,7 @@ TOP := __CAAS_TOP
 
 LOGFILE := ${BUILDDIR}/top.log
 
-all: ${BUILDDIR} ${BUILDDIR}/top.bit
+all: ${BUILDDIR} ${BUILDDIR}/__CAAS_BITNAME
 
 ${BUILDDIR}:
 	mkdir -m 777 -p ${BUILDDIR} && chown -R nobody ${BUILDDIR} | true
@@ -14,7 +14,7 @@ ${BUILDDIR}/top.json: __CAAS_SOURCES
 ${BUILDDIR}/top.asc: ${BUILDDIR}/top.json __CAAS_XDC
 	nextpnr-ice40 --json $< --asc $@ --__CAAS_ICE40_PART --package __CAAS_ICE40_PACKAGE --pcf $(filter-out $<,$^) >> ${LOGFILE} 2>&1
 	
-${BUILDDIR}/top.bit: ${BUILDDIR}/top.asc
+${BUILDDIR}/__CAAS_BITNAME: ${BUILDDIR}/top.asc
 	icepack $< $@ >> ${LOGFILE} 2>&1
 
 .PHONY: clean

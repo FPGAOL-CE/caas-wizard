@@ -24,6 +24,7 @@ top_default = 'top'
 constraint_default = '*.xdc,*.pcf,*.lpf,*.cst'
 sources_default = '*.v'
 misc_default = ''
+bitname_default = 'top.bit'
 
 term_white = "\033[37m"
 term_orig = "\033[0m"
@@ -136,6 +137,7 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
     top = caas_conf['project'].get('top', top_default)
     constraint = caas_conf['project'].get('constraint', constraint_default)
     sources = caas_conf['project'].get('sources', sources_default)
+    bitname = caas_conf['project'].get('bitname', bitname_default)
 
     # We don't need to cover all cases, "bad" cases just return empty
 
@@ -179,6 +181,7 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
               + "-e \'s/__CAAS_TOP/" + top + "/g\' "
               + "-e \'s/__CAAS_SOURCES/" + srcwildcard + "/g\' "
               + "-e \'s/__CAAS_XDC/" + constraintwildcard + "/g\' "
+              + "-e \'s/__CAAS_BITNAME/" + bitname + "/g\' "
               + "-e \'s/__CAAS_PART/" + part + "/g\' "
               + "-e \'s/__CAAS_FAMILY/" + xc7family + "/g\' "
               + "-e \'s/__CAAS_F4PGA_DEVICE/" + f4pga_device + "/g\' "
@@ -193,6 +196,7 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite):
 def requestexp(e):
     print("Exception occured when communicating with server: ", e)
 
+# only do upload and query. mfgen, etc are done by server's caasw
 def submit(conf_file, proj_dir, dryrun, newjobid):
     import requests
     print(term_white + "Preparing payload for project..." + term_orig)
