@@ -7,6 +7,7 @@ import argparse
 import configparser
 import urllib.parse
 import json
+import re
 from pathlib import Path
 
 local_server = 'http://127.0.0.1:18888/'
@@ -25,6 +26,7 @@ constraint_default = '*.xdc,*.pcf,*.lpf,*.cst'
 sources_default = '*.v'
 misc_default = ''
 bitname_default = 'top.bit'
+caas_conf_default = 'caas.conf'
 
 term_white = "\033[37m"
 term_orig = "\033[0m"
@@ -125,19 +127,128 @@ def gowin_derive(part, backend):
 def getjobid():
     return '%08x' % random.randrange(16**8)
 
-# this runs on the compiling server
-def mfgen(conf_file, proj_dir, makefile, script, overwrite):
+# this is writen by GPT
+def extract_github_url(url):
+    pattern = re.compile(r"https://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+)(?:/tree/(?P<branch>[^/]+)/(?P<dir>.+))?")
+    match = pattern.search(url)
+    
+    if match:
+        owner_repo = f"https://github.com/{match.group('owner')}/{match.group('repo')}"
+        branch = match.group('branch') or ""
+        dir_path = match.group('dir') or "."
+        # Format dir_path to start with './' indicating current/selected directory
+        dir_path_formatted = f"./{dir_path}" if not dir_path.startswith('.') else dir_path
+        localdir = match.group('repo')
+        return (owner_repo, branch, dir_path_formatted, localdir)
+    else:
+        return (-1, -1, -1, -1)
+
+def git_clone(url, branch, dir):
+    cmd = "git clone --depth=1 " + (("-b " + branch) if branch else "") + " " + url + " " + dir
+    print('Run ' + cmd)
+    return os.system(cmd)
+
+# this runs on the compiling server, caasw submit doesn't need this
+def mfgen(conf_file, proj_dir, makefile, script, overwrite, clone):
     if overwrite == False and (os.path.isfile(script) or os.path.isfile(makefile)):
         print('File exist! Use --overwrite to overwrite')
         sys.exit(1)
     caas_conf = configparser.ConfigParser()
     caas_conf.read(conf_file)
+
+    backend = caas_conf['project'].get('backend')
+    part = caas_conf['project'].get('part')
+    top = caas_conf['project'].get('top', top_default)
+    constraint = caas_conf['project'].get('constraint', constraint_default)
+    sources = caas_conf['project'].get('sources', sources_default)
+    misc = caas_conf['project'].get('misc', misc_default)
+    bitname = caas_conf['project'].get('bitname', bitname_default)
+
     backend = caas_conf['project'].get('backend')
     part = caas_conf['project'].get('part')
     top = caas_conf['project'].get('top', top_default)
     constraint = caas_conf['project'].get('constraint', constraint_default)
     sources = caas_conf['project'].get('sources', sources_default)
     bitname = caas_conf['project'].get('bitname', bitname_default)
+    misc = caas_conf['project'].get('misc', misc_default)
+    giturl = caas_conf['project'].get('giturl')
+    usegitconf = caas_conf['project'].get('usegitconf')
+    gitconf = caas_conf['project'].get('gitconf', caas_conf_default)
+    # Valid URL examples: 
+    # https://github.com/FPGAOL-CE/user-examples
+    # https://github.com/FPGAOL-CE/user-examples/tree/main/tangnano9k
+
+    # Clone a Git URL and compile. No matter the compilation details are specified
+    # in this caas_conf or in the repo itself, we always generate a new .caas.conf
+    # in the cloned repo specified directory DIR, run caasw mfgen in DIR, and
+    # generate a dummy makefile that call make in DIR and copy/move back built
+    # results from DIR. 
+    if giturl:
+        cloneurl, branch, path, reponame = extract_github_url(giturl)
+        localdir = os.path.join(proj_dir, reponame)
+        # this rel_path is valid in docker, which is important
+        target_rel_path = os.path.join(reponame, path)
+        target_proj_dir = os.path.join(localdir, path)
+        if cloneurl == -1:
+            print('Misformed URL: %s, only GitHub URL supported now!' % giturl)
+            sys.exit(1)
+        print('Git URL specified, repo: %s, branch: %s, path in repo: %s ' % (cloneurl, branch, path))
+        if os.path.exists(localdir):
+            print('Git repo already exists locally, skip cloning.')
+        elif not clone:
+            print('Git repo does\'t exist locally, --clone is required for cloning Git URL!')
+            sys.exit(1)
+        else:
+            print('Clone the repo to %s...' % localdir)
+            if git_clone(cloneurl, branch, localdir):
+                print('Clone failed!')
+                sys.exit(1)
+
+        if usegitconf:
+            print('Use specified config(%s) in repo.' % gitconf)
+            pass
+        else:
+            print('Usegitconf not specified, generate .caas.conf for repo...')
+            gitconf = '.caas.conf'
+            gen_conf = configparser.ConfigParser()
+            gen_conf['project'] = {}
+            gen_conf['project']['backend'] = backend
+            gen_conf['project']['part'] = part
+            gen_conf['project']['top'] = top
+            gen_conf['project']['sources'] = sources
+            gen_conf['project']['constraint'] = constraint
+            gen_conf['project']['misc'] = misc
+            gen_conf['project']['bitname'] = bitname
+            with open(os.path.join(target_proj_dir, gitconf), 'w') as f:
+                gen_conf.write(f)
+                print('%s writen to %s/' % (gitconf, target_proj_dir))
+        # call caasw in target directory for real Makefile gen
+        print('Call caas-wizard in %s...' % target_proj_dir)
+        # We recommended run caasw in current directory, though in principle
+        # specifying any directory will work
+        cmd = "cd " + target_proj_dir + " && " + sys.argv[0] + " --overwrite mfgen ./%s ." % gitconf
+        print('------------')
+        if os.system(cmd):
+            print('Call caas-wizard error!')
+            sys.exit(1)
+        print('------------')
+        # finally, generate dummy run_caas.sh
+        print('Write dummy %s...' % GENERIC_SH_NAME)
+        os.system('''cat > %s << EOF
+#!/bin/sh -e
+curdir=\`pwd\`
+cd \$curdir/%s
+./%s
+cd \$curdir
+cp -rf \$curdir/%s/%s \$curdir/%s 
+EOF
+''' % (os.path.join(proj_dir, GENERIC_SH_NAME),
+     target_rel_path,
+     GENERIC_SH_NAME,
+     target_rel_path, result_dir, result_dir))
+        os.system('chmod +x %s' % os.path.join(proj_dir, GENERIC_SH_NAME))
+        print('Done preperation for Git URL compilation.')
+        sys.exit(0)
 
     # We don't need to cover all cases, "bad" cases just return empty
 
@@ -338,18 +449,20 @@ if __name__ == '__main__':
     aparse.add_argument('--makefile', action='store', default='Makefile.caas', help='mfgen - Name of generated Makefile')
     aparse.add_argument('--script', action='store', default='run_caas.sh', help='mfgen - Name of generated compile script')
     aparse.add_argument('--overwrite', action='store_const', const=True, default=False, help='mfgen - Overwrite existing files')
+    aparse.add_argument('--clone', action='store_const', const=True, default=False, help='clone - specify this with mfgen to get source from Git')
     aparse.add_argument('--dryrun', action='store_const', const=True, default=False, help='submit - Prepare submission files but do not upload')
     aparse.add_argument('--newjobid', action='store_const', const=True, default=False, help='submit - Use a new random jobID')
-    aparse.add_argument('conf', metavar='CONF', type=str, nargs='?', default='caas.conf', help='Configuration file (default: caas.conf)')
+    aparse.add_argument('conf', metavar='CONF', type=str, nargs='?', default=caas_conf_default, help='Configuration file (default: %s)' % caas_conf_default)
     aparse.add_argument('dir', metavar='DIR', type=str, nargs='?', default='.', help='Project directory (default: .)')
     args = aparse.parse_args()
-    print(args)
+    # print(args)
     op = args.op[0]
     conf_file = args.conf
     proj_dir = args.dir
     mfgen_makefile = args.makefile
     mfgen_script = args.script
     mfgen_overwrite = args.overwrite
+    mfgen_clone = args.clone
     submit_dryrun = args.dryrun
     submit_newjobid = args.newjobid
     if op == 'clean':
@@ -362,7 +475,7 @@ if __name__ == '__main__':
         print('Project directory %s not found!' % proj_dir)
         sys.exit(1)
     if op == 'mfgen':
-        mfgen(conf_file, proj_dir, mfgen_makefile, mfgen_script, mfgen_overwrite)
+        mfgen(conf_file, proj_dir, mfgen_makefile, mfgen_script, mfgen_overwrite, mfgen_clone)
     elif op == 'submit':
         submit(conf_file, proj_dir, submit_dryrun, submit_newjobid)
     else:
