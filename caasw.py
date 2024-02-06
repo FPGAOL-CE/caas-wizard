@@ -235,12 +235,14 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite, clone):
         # finally, generate dummy run_caas.sh
         print('Write dummy %s...' % GENERIC_SH_NAME)
         os.system('''cat > %s << EOF
-#!/bin/sh -e
+#!/bin/sh
 curdir=\`pwd\`
 cd \$curdir/%s
 ./%s
+ret=\$?
 cd \$curdir
 cp -rf \$curdir/%s/%s \$curdir/%s 
+exit \$ret
 EOF
 ''' % (os.path.join(proj_dir, GENERIC_SH_NAME),
      target_rel_path,
