@@ -144,7 +144,7 @@ def extract_github_url(url):
         return (-1, -1, -1, -1)
 
 def git_clone(url, branch, dir):
-    cmd = "git clone --depth=1 " + (("-b " + branch) if branch else "") + " " + url + " " + dir
+    cmd = "GIT_TERMINAL_PROMPT=0 git clone --depth=1 " + (("-b " + branch) if branch else "") + " " + url + " " + dir
     print('Run ' + cmd)
     return os.system(cmd)
 
