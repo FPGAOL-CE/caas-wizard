@@ -241,12 +241,14 @@ cd \$curdir/%s
 ./%s
 ret=\$?
 cd \$curdir
-cp -rf \$curdir/%s/%s \$curdir/%s 
+mkdir -p %s
+cp -rf \$curdir/%s/%s/* \$curdir/%s/
 exit \$ret
 EOF
 ''' % (os.path.join(proj_dir, GENERIC_SH_NAME),
      target_rel_path,
      GENERIC_SH_NAME,
+     result_dir,
      target_rel_path, result_dir, result_dir))
         os.system('chmod +x %s' % os.path.join(proj_dir, GENERIC_SH_NAME))
         print('Done preperation for Git URL compilation.')
