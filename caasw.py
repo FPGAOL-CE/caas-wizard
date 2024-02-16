@@ -204,7 +204,7 @@ def mfgen(conf_file, proj_dir, makefile, script, overwrite, clone):
                 print('Clone failed!')
                 sys.exit(1)
 
-        if usegitconf == 'true' | usegitconf == 'True' | usegitconf == '1':
+        if usegitconf == 'true' or usegitconf == 'True' or usegitconf == '1':
             print('Use specified config(%s) in repo.' % gitconf)
             pass
         else:
