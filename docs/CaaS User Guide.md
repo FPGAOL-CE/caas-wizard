@@ -1,6 +1,6 @@
 ***FPGAOL Community Edition Compiling-as-a-Service (FPGAOL-CE CaaS) User Guide***
 
-### Web Page Quick Start
+## Web Page Quick Start
 
 Click on **"Template"** and select an example. 
 
@@ -18,10 +18,10 @@ Then the **"Download Bitstream"** (if succeeded) and **"Fetch & Show Log"**/**"D
 
 > It's recommended to just **"Fetch & Show Log"**. 
 
-The bitstream can be loaded to development board by local tools like [openFPGAloader](https://github.com/trabucayre/openFPGALoader), or directly via our [WebUSB-based loader](CaaS WebUSB User Guide.md). 
+The bitstream can be loaded to development board by local tools like [openFPGAloader](https://github.com/trabucayre/openFPGALoader), or directly via our [WebUSB-based loader](./CaaS%20WebUSB%20User%20Guide.md). 
 
 
-### Compilation Option Setup
+## Compilation Option Setup
 
 There's four input fields on top of the web page: **Name**, **FPGA Part**, **Backend**, and **Top Module**. These will be specified automatically if you load a Template. 
 
@@ -36,7 +36,7 @@ There's four input fields on top of the web page: **Name**, **FPGA Part**, **Bac
 
 If your board/chip is available in the templates, it's recommended to select a Template then copy/paste your code into the edit sections instead of manually specifying these fields. 
 
-### Status line
+## Status line
 
 <details>
 
@@ -46,7 +46,7 @@ Usually, log will be available even if compilation fails. If log is not availabl
 
 </details>
 
-### Reading the log
+## Reading the log
 
 <details>
 It's true that the log emitted by the open-source toolchains is harder to read, as they don't graphically list each warnings and errors. 
@@ -71,7 +71,7 @@ Info: Max frequency for clock 'CLK$SB_IO_IN_$glb_clk': 91.98 MHz (PASS at 12.00 
 
 </details>
 
-### GitHub URL compilation
+## GitHub URL compilation
 
 The platform can also compile the source code directly from a GitHub directory URL. Select the **"GitHub"** on upper right corner, and the interface will be shown. 
 
@@ -101,10 +101,10 @@ There's two ways for a more complex configuration.
     - Thus, you can use this function directly without setting up web page options. This is very convenient. 
   - One example of the config file is [TetriSaraj](https://github.com/FPGAOL-CE/openXC7-TetriSaraj/blob/caas/caas.conf). 
 
-For both ways, please refer to [CaaS Wizard API Access]() for detailed configuration documentation and working principles. 
+For both ways, please refer to [CaaS Wizard API Access](./CaaS Wizard API Access.md) for detailed configuration documentation and working principles. 
 
 
-### Caution points
+## Caution points
 
 - When selecting a template, existing setups and codes will be cleared. 
   - You can use Ctrl-Z to undo the change. 
