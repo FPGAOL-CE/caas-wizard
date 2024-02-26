@@ -25,9 +25,8 @@
 **Linux**
 
 - Since Linux various by each distribution, maybe it works by default. 
-- If there's error -5 when performing **Detect FPGA** on the webpage, please try `sudo modprobe ftdi_sio` to remove the kernel driver module. 
-  - Note that the driver will be auto-reloaded when new FTDI usb device is plugged in. Write `blacklist ftdi_sio` in `/etc/modprobe.d/ftdi.conf` can be one solution. 
-
+- If there's error -5 when performing Detect FPGA on the webpage, please try `sudo modprobe ftdi_sio` to remove the kernel driver module. 
+  - Note that the driver will be auto-reloaded when new FTDI USB device is plugged in. Write `blacklist ftdi_sio` in `/etc/modprobe.d/ftdi.conf` can be one solution. 
 
 **Mac OS**
 
