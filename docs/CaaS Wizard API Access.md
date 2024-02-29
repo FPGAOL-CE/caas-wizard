@@ -1,10 +1,10 @@
 ***FPGAOL-CE CaaS Wizard API Access Guide***
 
-#### About
+## About
 
 This tool handles Makefile generation and compilation of local/remote FPGA projects with flexible architecture and toolchain choices, by a given configuration file. 
 
-#### Installation
+## Installation
 
 - Linux
 
@@ -19,9 +19,9 @@ This tool handles Makefile generation and compilation of local/remote FPGA proje
 
   TODO
 
-#### Basic Configuration
+## Basic Configuration
 
-**caas.conf**
+#### **caas.conf**
 
 An INI configuration file, defaultly named `caas.conf`, need to be placed at the root directory of the project. It can include files in current directory and subdirectories, but not parent directory. 
 
@@ -47,7 +47,7 @@ Backend = ice40
 Part = ice40up5k-sg48
 ```
 
-**caasw**
+#### **caasw**
 
 Then, the CaaS Wizard can be called to generate build scripts and Makefiles. 
 
@@ -75,7 +75,7 @@ Run `./run_caas.sh` will do the compilation if the required Docker container exi
 
 Compile results will be in `./build` directory, named `top.bit` and `top.log`. The bitstream name can be changed by adding the, for Tang Nano's example, `Bitname = top.fs` line to the `[Project]` section. 
 
-#### Using Remote Server
+## Using Remote Server
 
 Like the [FPGAOL-CE CaaS Platform](https://caas.symbioticeda.com), compilation can run on servers so users don't need local toolchain installation. In this case, a `[caas]` section can be used to specify server address: 
 
@@ -114,7 +114,7 @@ Log downloaded.
 Bitstream downloaded.
 ```
 
-#### Compile a GitHub project
+## Compile a GitHub project
 
 A testing feature of fetching and compiling a project from GitHub. 
 
@@ -185,7 +185,7 @@ This type of compilation can also be submitted.
 
 **Caution**: It's not designed to put `caas.conf` with `Giturl` line in GitHub! This kind of file cannot be used remote compilation! 
 
-#### Supported Toolchains
+## Supported Toolchains
 
 Now, the following toolchains are supported: 
 
