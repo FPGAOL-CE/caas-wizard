@@ -1,14 +1,4 @@
 ## caas-wizard
-Configuration/Makefile/User script manager for the CaaS platform. 
+Configuration/Makefile/User script manager for generic FPGA compiling automation and the CaaS platform. 
 
-**Requirements**
-- Linux
-
-  `pip install requests`
-
-- Mac OS X
-  `brew install python gsed`
-
-  `pip3 install requests`
-
-- Windows (WSL)
+Please see the [Documents](docs/CaaS%20Wizard%20API%20Access.md). 
