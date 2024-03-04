@@ -118,7 +118,7 @@ Bitstream downloaded.
 
 A testing feature of fetching and compiling a project from GitHub. 
 
-In the `[project]` section, add a `Gitconf` line will make this configuration recognized a remote project job. 
+In the `[project]` section, add a `Giturl` line will make this configuration recognized a remote project job. 
 
 Specify the root directory: `Giturl = https://github.com/FPGAOL-CE/user-examples`
 
