@@ -101,7 +101,7 @@ There's two ways for a more complex configuration.
     - Thus, you can use this function directly without setting up web page options. This is very convenient. 
   - One example of the config file is [TetriSaraj](https://github.com/FPGAOL-CE/openXC7-TetriSaraj/blob/caas/caas.conf). 
 
-For both ways, please refer to [CaaS Wizard API Access](./CaaS Wizard API Access.md) for detailed configuration documentation and working principles. 
+For both ways, please refer to [CaaS Wizard API Access](./CaaS%20Wizard%20API%20Access.md) for detailed configuration documentation and working principles. 
 
 
 ## Caution points
