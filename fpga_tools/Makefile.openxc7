@@ -1,5 +1,5 @@
-DB_DIR = /nextpnr-xilinx/xilinx/external/prjxray-db
-CHIPDB = /chipdb
+DB_DIR ?= /nextpnr-xilinx/xilinx/external/prjxray-db
+CHIPDB ?= /chipdb
 
 BUILDDIR := ${CURDIR}/build
 TOP := __CAAS_TOP
@@ -11,10 +11,13 @@ PART := __CAAS_PART
 
 LOGFILE := ${BUILDDIR}/top.log
 
-all: ${BUILDDIR} ${BUILDDIR}/__CAAS_BITNAME
+all: ${CHIPDB} ${BUILDDIR} ${BUILDDIR}/__CAAS_BITNAME
 
 ${BUILDDIR}:
 	mkdir -m 777 -p ${BUILDDIR} && chown -R nobody ${BUILDDIR} | true
+
+${CHIPDB}:
+	mkdir -m 777 -p ${CHIPDB} && chown -R nobody ${CHIPDB} | true
 
 # we run this in parent directory to seeminglessly import user source files
 # otherwise have to parse user pattern and add ../
