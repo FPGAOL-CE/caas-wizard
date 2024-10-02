@@ -59,7 +59,7 @@ Overwrite existing (recommended): `caasw.py --overwrite mfgen`
 
 Clean: `caasw.py clean`
 
-A `Makefile.caas` will be generated, and a (readable) `run_caas.sh` script will call the Dockerized toolchain to compile the project. 
+A `Makefile.caas` will be generated, and a (readable) `run_caas.sh` script will call the Dockerized toolchain to compile the project. An example for generated `Makefile.caas` is [here](https://github.com/FPGAOL-CE/core_jpeg/blob/main/Makefile.caas). 
 
 The compilation command for OpenXC7: 
 
