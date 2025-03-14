@@ -151,22 +151,14 @@ def git_clone(url, branch, dir):
     return os.system(cmd)
 
 # this runs on the compiling server, caasw submit doesn't need this
-def mfgen(conf_file, proj_dir, makefile, script, overwrite, clone):
+def mfgen(conf_file, proj_dir, makefile, script, backend, overwrite, clone):
     if overwrite == False and (os.path.isfile(script) or os.path.isfile(makefile)):
         print('File exist! Use --overwrite to overwrite')
         sys.exit(1)
     caas_conf = configparser.ConfigParser()
     caas_conf.read(conf_file)
 
-    backend = caas_conf['project'].get('backend')
-    part = caas_conf['project'].get('part')
-    top = caas_conf['project'].get('top', top_default)
-    constraint = caas_conf['project'].get('constraint', constraint_default)
-    sources = caas_conf['project'].get('sources', sources_default)
-    misc = caas_conf['project'].get('misc', misc_default)
-    bitname = caas_conf['project'].get('bitname', bitname_default)
-
-    backend = caas_conf['project'].get('backend')
+    kackend = caas_conf['project'].get('backend') if backend == None else backend
     part = caas_conf['project'].get('part')
     top = caas_conf['project'].get('top', top_default)
     constraint = caas_conf['project'].get('constraint', constraint_default)
@@ -280,8 +272,10 @@ EOF
     sh_t = os.path.join(tools_dir, backend + '.sh')
     mf = os.path.join(proj_dir, makefile)
     sh = os.path.join(proj_dir, script)
-    os.system("cp -v " + mf_t + " " + mf)
-    os.system("cp -v " + sh_t + " " + sh)
+    if os.system("cp -v " + mf_t + " " + mf) != 0 and \
+            os.system("cp -v " + sh_t + " " + sh):
+        print('Error copying Makefile! Backend doesn\'t exist!')
+        sys.exit(-1)
 
     print("Patching build files...")
     # only vivado backend is tcl-based, others are just makefiles
@@ -454,6 +448,7 @@ if __name__ == '__main__':
     aparse.add_argument('op', metavar='OP', type=str, nargs=1, help='Type of operation: mfgen, submit, clean')
     aparse.add_argument('--makefile', action='store', default=GENERIC_MF_NAME, help='mfgen - Name of generated Makefile')
     aparse.add_argument('--script', action='store', default=GENERIC_SH_NAME, help='mfgen - Name of generated compile script')
+    aparse.add_argument('--backend', action='store', default=None, help='mfgen - Override backend in caas.conf')
     aparse.add_argument('--overwrite', action='store_const', const=True, default=False, help='mfgen - Overwrite existing files')
     aparse.add_argument('--clone', action='store_const', const=True, default=False, help='clone - specify this with mfgen to get source from Git')
     aparse.add_argument('--dryrun', action='store_const', const=True, default=False, help='submit - Prepare submission files but do not upload')
@@ -467,6 +462,7 @@ if __name__ == '__main__':
     proj_dir = args.dir
     mfgen_makefile = args.makefile
     mfgen_script = args.script
+    mfgen_backend = args.backend
     mfgen_overwrite = args.overwrite
     mfgen_clone = args.clone
     submit_dryrun = args.dryrun
@@ -481,7 +477,7 @@ if __name__ == '__main__':
         print('Project directory %s not found!' % proj_dir)
         sys.exit(1)
     if op == 'mfgen':
-        mfgen(conf_file, proj_dir, mfgen_makefile, mfgen_script, mfgen_overwrite, mfgen_clone)
+        mfgen(conf_file, proj_dir, mfgen_makefile, mfgen_script, mfgen_backend, mfgen_overwrite, mfgen_clone)
     elif op == 'submit':
         submit(conf_file, proj_dir, submit_dryrun, submit_newjobid)
     else:
