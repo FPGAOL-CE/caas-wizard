@@ -9,4 +9,4 @@ docker run --pull never -it --rm -m 8G \
 	-v `pwd`:/mnt \
 	--tmpfs /tmp \
 	--user root \
-	regymm/gowin-gocd${append} make -C /mnt -f Makefile.caas
+	regymm/gowin${append} make -C /mnt -f Makefile.caas

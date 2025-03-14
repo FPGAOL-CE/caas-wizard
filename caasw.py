@@ -114,6 +114,8 @@ def gowin_derive(part, backend):
             gowin_family = 'GW1NZ-1'
         elif part == 'GW1NR-LV9QN88C6\/I5':
             gowin_family = 'GW1N-9'
+        elif part == 'GW2AR-LV18QN88C8\/I7':
+            gowin_family = 'GW2A-18C'
         elif part == 'GW2A-LV18PG256C8\/I7':
             gowin_family = 'GW2A-18'
         elif part == 'GW1N-UV4LQ144C6\/I5':
@@ -276,8 +278,8 @@ EOF
     tools_dir = os.path.join(Path(__file__).parent.absolute(), 'fpga_tools')
     mf_t = os.path.join(tools_dir, 'Makefile.' + backend)
     sh_t = os.path.join(tools_dir, backend + '.sh')
-    mf = os.path.join(proj_dir, GENERIC_MF_NAME)
-    sh = os.path.join(proj_dir, GENERIC_SH_NAME)
+    mf = os.path.join(proj_dir, makefile)
+    sh = os.path.join(proj_dir, script)
     os.system("cp -v " + mf_t + " " + mf)
     os.system("cp -v " + sh_t + " " + sh)
 
@@ -450,8 +452,8 @@ def clean(proj_dir):
 if __name__ == '__main__':
     aparse = argparse.ArgumentParser(description='FPGAOL CaaS Wizard')
     aparse.add_argument('op', metavar='OP', type=str, nargs=1, help='Type of operation: mfgen, submit, clean')
-    aparse.add_argument('--makefile', action='store', default='Makefile.caas', help='mfgen - Name of generated Makefile')
-    aparse.add_argument('--script', action='store', default='run_caas.sh', help='mfgen - Name of generated compile script')
+    aparse.add_argument('--makefile', action='store', default=GENERIC_MF_NAME, help='mfgen - Name of generated Makefile')
+    aparse.add_argument('--script', action='store', default=GENERIC_SH_NAME, help='mfgen - Name of generated compile script')
     aparse.add_argument('--overwrite', action='store_const', const=True, default=False, help='mfgen - Overwrite existing files')
     aparse.add_argument('--clone', action='store_const', const=True, default=False, help='clone - specify this with mfgen to get source from Git')
     aparse.add_argument('--dryrun', action='store_const', const=True, default=False, help='submit - Prepare submission files but do not upload')

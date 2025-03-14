@@ -1,9 +1,7 @@
+# SPDX-License-Identifier: MIT
+# Generated from https://github.com/FPGAOL-CE/caas-wizard
+#
 BUILDDIR := ${CURDIR}/build
-# TOP := __CAAS_TOP
-# SOURCES := $(wildcard __CAAS_SOURCES)
-# XDC := $(wildcard __CAAS_XDC)
-
-# PART := __CAAS_PART
 
 LOGFILE := ${BUILDDIR}/top.log
 
@@ -16,7 +14,7 @@ ${BUILDDIR}:
 .ONESHELL: 
 ${BUILDDIR}/vivado.tcl: ${BUILDDIR}
 	cat << EOF > $@
-	# vivado.tcl generated for caas
+	# vivado.tcl generated for FPGAOL-CE/caas-wizard
 	# can be launched from any directory
 	cd ${BUILDDIR}
 	create_project -part __CAAS_PART -force v_proj
