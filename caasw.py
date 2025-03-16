@@ -158,7 +158,7 @@ def mfgen(conf_file, proj_dir, makefile, script, backend, overwrite, clone):
     caas_conf = configparser.ConfigParser()
     caas_conf.read(conf_file)
 
-    kackend = caas_conf['project'].get('backend') if backend == None else backend
+    backend = caas_conf['project'].get('backend') if backend == None else backend
     part = caas_conf['project'].get('part')
     top = caas_conf['project'].get('top', top_default)
     constraint = caas_conf['project'].get('constraint', constraint_default)
