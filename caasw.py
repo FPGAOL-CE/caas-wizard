@@ -272,8 +272,8 @@ EOF
     sh_t = os.path.join(tools_dir, backend + '.sh')
     mf = os.path.join(proj_dir, makefile)
     sh = os.path.join(proj_dir, script)
-    if os.system("cp -v " + mf_t + " " + mf) != 0 and \
-            os.system("cp -v " + sh_t + " " + sh):
+    if os.system("cp -v " + mf_t + " " + mf) + \
+            os.system("cp -v " + sh_t + " " + sh) != 0:
         print('Error copying Makefile! Backend doesn\'t exist!')
         sys.exit(-1)
 
