@@ -27,6 +27,8 @@ sources_default = '*.v'
 misc_default = ''
 bitname_default = 'top.bit'
 caas_conf_default = 'caas.conf'
+simtop_default = '' # this is empty, so Makefile will automatically pick a top
+waveform_default = 'wave.vcd'
 
 term_white = "\033[37m"
 term_orig = "\033[0m"
@@ -35,6 +37,8 @@ SEDEXEC = 'gsed' if sys.platform == 'darwin' else 'sed'
 
 GENERIC_MF_NAME = 'Makefile.caas'
 GENERIC_SH_NAME = 'run_caas.sh'
+GENERIC_SIM_SH_NAME = 'run_sim.sh'
+GENERIC_SIM_MF_NAME = 'Makefile.sim.caas'
 
 def xc7family_derive(part, backend):
     family = ''
@@ -151,7 +155,7 @@ def git_clone(url, branch, dir):
     return os.system(cmd)
 
 # this runs on the compiling server, caasw submit doesn't need this
-def mfgen(conf_file, proj_dir, makefile, script, backend, overwrite, clone):
+def mfgen(conf_file, proj_dir, makefile, script, backend, overwrite, clone, sim=False):
     if overwrite == False and (os.path.isfile(script) or os.path.isfile(makefile)):
         print('File exist! Use --overwrite to overwrite')
         sys.exit(1)
@@ -168,6 +172,18 @@ def mfgen(conf_file, proj_dir, makefile, script, backend, overwrite, clone):
     giturl = caas_conf['project'].get('giturl')
     usegitconf = caas_conf['project'].get('usegitconf')
     gitconf = caas_conf['project'].get('gitconf', caas_conf_default)
+    
+    # Handle simulation-specific configuration
+    if 'sim' in caas_conf:
+        sim_top = caas_conf['sim'].get('top', simtop_default)
+        sim_sources = caas_conf['sim'].get('sources', sources)
+        sim_misc = caas_conf['sim'].get('misc', misc)
+        sim_vcd = caas_conf['sim'].get('vcd', waveform_default)
+    else:
+        sim_top = simtop_default
+        sim_sources = sources
+        sim_misc = misc
+        sim_vcd = waveform_default
     # Valid URL examples: 
     # https://github.com/FPGAOL-CE/user-examples
     # https://github.com/FPGAOL-CE/user-examples/tree/main/tangnano9k
@@ -220,14 +236,16 @@ def mfgen(conf_file, proj_dir, makefile, script, backend, overwrite, clone):
         print('Call caas-wizard in %s...' % target_proj_dir)
         # We recommended run caasw in current directory, though in principle
         # specifying any directory will work
-        cmd = "cd " + target_proj_dir + " && " + sys.argv[0] + " --overwrite mfgen ./%s ." % gitconf
+        sim_flag = " --sim" if sim else ""
+        cmd = "cd " + target_proj_dir + " && " + sys.argv[0] + " --overwrite" + sim_flag + " mfgen ./%s ." % gitconf
         print('------------')
         if os.system(cmd):
             print('Call caas-wizard error!')
             sys.exit(1)
         print('------------')
-        # finally, generate dummy run_caas.sh
-        print('Write dummy %s...' % GENERIC_SH_NAME)
+        # finally, generate dummy script based on mode
+        script_name = GENERIC_SIM_SH_NAME if sim else GENERIC_SH_NAME
+        print('Write dummy %s...' % script_name)
         os.system('''cat > %s << EOF
 #!/bin/sh
 curdir=\`pwd\`
@@ -239,13 +257,14 @@ mkdir -p %s
 cp -rf \$curdir/%s/%s/* \$curdir/%s/
 exit \$ret
 EOF
-''' % (os.path.join(proj_dir, GENERIC_SH_NAME),
+''' % (os.path.join(proj_dir, script_name),
      target_rel_path,
-     GENERIC_SH_NAME,
+     script_name,
      result_dir,
      target_rel_path, result_dir, result_dir))
-        os.system('chmod +x %s' % os.path.join(proj_dir, GENERIC_SH_NAME))
-        print('Done preperation for Git URL compilation.')
+        os.system('chmod +x %s' % os.path.join(proj_dir, script_name))
+        mode_str = "simulation" if sim else "compilation"
+        print('Done preperation for Git URL %s.' % mode_str)
         sys.exit(0)
 
     # We don't need to cover all cases, "bad" cases just return empty
@@ -268,8 +287,17 @@ EOF
     # copy the template files
     print("Copy build files...")
     tools_dir = os.path.join(Path(__file__).parent.absolute(), 'fpga_tools')
-    mf_t = os.path.join(tools_dir, 'Makefile.' + backend)
-    sh_t = os.path.join(tools_dir, backend + '.sh')
+    
+    # Choose the appropriate Makefile and shell script templates based on simulation mode
+    if sim:
+        mf_t = os.path.join(tools_dir, 'Makefile.sim')
+        sh_t = os.path.join(tools_dir, 'run_sim.sh')
+        print("Using simulation mode - copying Makefile.sim and run_sim.sh templates")
+    else:
+        mf_t = os.path.join(tools_dir, 'Makefile.' + backend)
+        sh_t = os.path.join(tools_dir, backend + '.sh')
+        print("Using compilation mode - copying Makefile." + backend + " and " + backend + ".sh templates")
+    
     mf = os.path.join(proj_dir, makefile)
     sh = os.path.join(proj_dir, script)
     if os.system("cp -v " + mf_t + " " + mf) + \
@@ -288,6 +316,13 @@ EOF
     constraintwildcard = ""
     for s in constraint.replace("/", "\/").split(","):
         constraintwildcard = constraintwildcard + " $(wildcard " + s + ") "
+    # simulation-specific wildcards
+    sim_srcwildcard = ""
+    for s in sim_sources.replace("/", "\/").split(","):
+        sim_srcwildcard = sim_srcwildcard + " $(wildcard " + s + ") "
+    sim_miscwildcard = ""
+    for s in sim_misc.replace("/", "\/").split(","):
+        sim_miscwildcard = sim_miscwildcard + " $(wildcard " + s + ") "
     os.system(SEDEXEC + " -i " 
               + "-e \'s/__CAAS_TOP/" + top + "/g\' "
               + "-e \'s/__CAAS_SOURCES/" + srcwildcard + "/g\' "
@@ -302,6 +337,10 @@ EOF
               + "-e \'s/__CAAS_ICE40_PACKAGE/" + ice40_package + "/g\' "
               + "-e \'s/__CAAS_GOWIN_PART/" + gowin_part + "/g\' "
               + "-e \'s/__CAAS_GOWIN_FAMILY/" + gowin_family + "/g\' "
+              + "-e \'s/__CAAS_SIM_TOP/" + sim_top + "/g\' "
+              + "-e \'s/__CAAS_SIM_SOURCES/" + sim_srcwildcard + "/g\' "
+              + "-e \'s/__CAAS_SIM_MISC/" + sim_miscwildcard + "/g\' "
+              + "-e \'s/__CAAS_SIM_VCD/" + sim_vcd + "/g\' "
               + mf)
 
 def requestexp(e):
@@ -436,7 +475,7 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
 
 
 def clean(proj_dir):
-    for i in [upload_file, download_file, jobid_file, caas_armed_file, GENERIC_MF_NAME, GENERIC_SH_NAME]:
+    for i in [upload_file, download_file, jobid_file, caas_armed_file, GENERIC_MF_NAME, GENERIC_SH_NAME, GENERIC_SIM_SH_NAME, GENERIC_SIM_MF_NAME]:
         try:
             os.remove(os.path.join(proj_dir, i))
         except OSError:
@@ -446,13 +485,14 @@ def clean(proj_dir):
 if __name__ == '__main__':
     aparse = argparse.ArgumentParser(description='FPGAOL CaaS Wizard')
     aparse.add_argument('op', metavar='OP', type=str, nargs=1, help='Type of operation: mfgen, submit, clean')
-    aparse.add_argument('--makefile', action='store', default=GENERIC_MF_NAME, help='mfgen - Name of generated Makefile')
-    aparse.add_argument('--script', action='store', default=GENERIC_SH_NAME, help='mfgen - Name of generated compile script')
+    aparse.add_argument('--makefile', action='store', default='DEFAULT', help='mfgen - Name of generated Makefile')
+    aparse.add_argument('--script', action='store', default='DEFAULT', help='mfgen - Name of generated compile script')
     aparse.add_argument('--backend', action='store', default=None, help='mfgen - Override backend in caas.conf')
     aparse.add_argument('--overwrite', action='store_const', const=True, default=False, help='mfgen - Overwrite existing files')
     aparse.add_argument('--clone', action='store_const', const=True, default=False, help='clone - specify this with mfgen to get source from Git')
     aparse.add_argument('--dryrun', action='store_const', const=True, default=False, help='submit - Prepare submission files but do not upload')
     aparse.add_argument('--newjobid', action='store_const', const=True, default=False, help='submit - Use a new random jobID')
+    aparse.add_argument('--sim', action='store_const', const=True, default=False, help='mfgen - Run in simulation mode')
     aparse.add_argument('conf', metavar='CONF', type=str, nargs='?', default=caas_conf_default, help='Configuration file (default: %s)' % caas_conf_default)
     aparse.add_argument('dir', metavar='DIR', type=str, nargs='?', default='.', help='Project directory (default: .)')
     args = aparse.parse_args()
@@ -467,6 +507,13 @@ if __name__ == '__main__':
     mfgen_clone = args.clone
     submit_dryrun = args.dryrun
     submit_newjobid = args.newjobid
+    mfgen_sim = args.sim
+    
+    # Set correct default makefile name for simulation mode
+    if mfgen_makefile == 'DEFAULT':
+        mfgen_makefile = GENERIC_SIM_MF_NAME if mfgen_sim else GENERIC_MF_NAME
+    if mfgen_script == 'DEFAULT':
+        mfgen_script = GENERIC_SIM_SH_NAME if mfgen_sim else GENERIC_SH_NAME
     if op == 'clean':
         clean(proj_dir)
         sys.exit(0)
@@ -477,7 +524,7 @@ if __name__ == '__main__':
         print('Project directory %s not found!' % proj_dir)
         sys.exit(1)
     if op == 'mfgen':
-        mfgen(conf_file, proj_dir, mfgen_makefile, mfgen_script, mfgen_backend, mfgen_overwrite, mfgen_clone)
+        mfgen(conf_file, proj_dir, mfgen_makefile, mfgen_script, mfgen_backend, mfgen_overwrite, mfgen_clone, mfgen_sim)
     elif op == 'submit':
         submit(conf_file, proj_dir, submit_dryrun, submit_newjobid)
     else:
