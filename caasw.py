@@ -492,7 +492,8 @@ if __name__ == '__main__':
     aparse.add_argument('--clone', action='store_const', const=True, default=False, help='clone - specify this with mfgen to get source from Git')
     aparse.add_argument('--dryrun', action='store_const', const=True, default=False, help='submit - Prepare submission files but do not upload')
     aparse.add_argument('--newjobid', action='store_const', const=True, default=False, help='submit - Use a new random jobID')
-    aparse.add_argument('--sim', action='store_const', const=True, default=False, help='mfgen - Run in simulation mode')
+    aparse.add_argument('--compile', action='store_const', const=True, default=False, help='Run compile')
+    aparse.add_argument('--sim', action='store_const', const=True, default=False, help='Run simulation')
     aparse.add_argument('conf', metavar='CONF', type=str, nargs='?', default=caas_conf_default, help='Configuration file (default: %s)' % caas_conf_default)
     aparse.add_argument('dir', metavar='DIR', type=str, nargs='?', default='.', help='Project directory (default: .)')
     args = aparse.parse_args()
@@ -507,6 +508,7 @@ if __name__ == '__main__':
     mfgen_clone = args.clone
     submit_dryrun = args.dryrun
     submit_newjobid = args.newjobid
+    mfgen_compile = args.compile
     mfgen_sim = args.sim
     
     # Set correct default makefile name for simulation mode
