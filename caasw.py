@@ -40,6 +40,106 @@ GENERIC_SH_NAME = 'run_caas.sh'
 GENERIC_SIM_SH_NAME = 'run_sim.sh'
 GENERIC_SIM_MF_NAME = 'Makefile.sim.caas'
 
+def validate_basic_field(value, field_name):
+    """Validate fields that allow only alphanumeric, underscore, and minus sign"""
+    if value is None:
+        return True  # None values are handled by defaults
+    if not re.match(r'^[a-zA-Z0-9_-]+$', value):
+        print(f'Error: {field_name} contains invalid characters. Only 0-9, a-z, A-Z, underscore, and minus sign are allowed.')
+        print(f'Invalid value: {value}')
+        return False
+    return True
+
+def validate_filename_field(value, field_name):
+    """Validate fields that allow alphanumeric, underscore, minus sign, and period (for filenames)"""
+    if value is None:
+        return True  # None values are handled by defaults
+    if not re.match(r'^[a-zA-Z0-9_.-]+$', value):
+        print(f'Error: {field_name} contains invalid characters. Only 0-9, a-z, A-Z, underscore, minus sign, and period are allowed.')
+        print(f'Invalid value: {value}')
+        return False
+    return True
+
+def validate_file_pattern_field(value, field_name):
+    """Validate fields that allow alphanumeric, underscore, minus sign, and asterisk"""
+    if value is None or value == '':
+        return True  # None/empty values are handled by defaults
+    if not re.match(r'^[a-zA-Z0-9_*,.\/-]+$', value):
+        print(f'Error: {field_name} contains invalid characters. Only 0-9, a-z, A-Z, underscore, minus sign, asterisk, comma, period, slash, and minus are allowed.')
+        print(f'Invalid value: {value}')
+        return False
+    return True
+
+def validate_part_field(value, field_name):
+    """Validate part field that allows alphanumeric, underscore, minus sign, slash, and backslash"""
+    if value is None:
+        print(f'Error: {field_name} is required but not specified in configuration file.')
+        return False
+    if not re.match(r'^[a-zA-Z0-9_\-/\\]+$', value):
+        print(f'Error: {field_name} contains invalid characters. Only 0-9, a-z, A-Z, underscore, minus sign, slash, and backslash are allowed.')
+        print(f'Invalid value: {value}')
+        return False
+    return True
+
+def validate_url_field(value, field_name):
+    """Validate URL fields (giturl) - basic validation for common URL characters"""
+    if value is None or value == '':
+        return True  # Optional field
+    # Allow common URL characters: alphanumeric, underscore, minus, period, slash, colon, question mark, equals, ampersand
+    if not re.match(r'^[a-zA-Z0-9_\-.:/?=&]+$', value):
+        print(f'Error: {field_name} contains invalid characters for a URL.')
+        print(f'Invalid value: {value}')
+        return False
+    return True
+
+def validate_config_values(caas_conf, backend_override=None):
+    """Validate all configuration values for special characters"""
+    valid = True
+    
+    # Get values from config
+    backend = backend_override if backend_override else caas_conf['project'].get('backend')
+    part = caas_conf['project'].get('part')
+    top = caas_conf['project'].get('top', top_default)
+    constraint = caas_conf['project'].get('constraint', constraint_default)
+    sources = caas_conf['project'].get('sources', sources_default)
+    bitname = caas_conf['project'].get('bitname', bitname_default)
+    misc = caas_conf['project'].get('misc', misc_default)
+    giturl = caas_conf['project'].get('giturl')
+    gitconf = caas_conf['project'].get('gitconf', caas_conf_default)
+    
+    # Validate basic fields (alphanumeric, underscore, minus only)
+    valid &= validate_basic_field(backend, 'backend')
+    valid &= validate_basic_field(top, 'top')
+    
+    # Validate filename fields (allow period for file extensions)
+    valid &= validate_filename_field(bitname, 'bitname')
+    valid &= validate_filename_field(gitconf, 'gitconf')
+    
+    # Validate part field (includes slash and backslash)
+    valid &= validate_part_field(part, 'part')
+    
+    # Validate file pattern fields (includes asterisk)
+    valid &= validate_file_pattern_field(constraint, 'constraint')
+    valid &= validate_file_pattern_field(sources, 'sources')
+    valid &= validate_file_pattern_field(misc, 'misc')
+    
+    # Validate URL field
+    valid &= validate_url_field(giturl, 'giturl')
+    
+    # Validate simulation fields if present
+    if 'sim' in caas_conf:
+        sim_top = caas_conf['sim'].get('top', simtop_default)
+        sim_sources = caas_conf['sim'].get('sources', sources)
+        sim_misc = caas_conf['sim'].get('misc', misc)
+        sim_vcd = caas_conf['sim'].get('vcd', waveform_default)
+        
+        valid &= validate_basic_field(sim_top, 'sim.top') if sim_top else True
+        valid &= validate_file_pattern_field(sim_sources, 'sim.sources')
+        valid &= validate_file_pattern_field(sim_misc, 'sim.misc')
+        valid &= validate_file_pattern_field(sim_vcd, 'sim.vcd')
+    
+    return valid
+
 def xc7family_derive(part, backend):
     family = ''
     if 'xc7s' in part:
@@ -161,6 +261,11 @@ def mfgen(conf_file, proj_dir, makefile, script, backend, overwrite, clone, sim=
         sys.exit(1)
     caas_conf = configparser.ConfigParser()
     caas_conf.read(conf_file)
+
+    # Validate configuration values for special characters
+    if not validate_config_values(caas_conf, backend):
+        print('Configuration input validation failed! Please fix the invalid characters in your configuration file.')
+        sys.exit(1)
 
     backend = caas_conf['project'].get('backend') if backend == None else backend
     part = caas_conf['project'].get('part')
@@ -352,6 +457,13 @@ def submit(conf_file, proj_dir, dryrun, newjobid):
     print(term_white + "Preparing payload for project..." + term_orig)
     caas_conf = configparser.ConfigParser()
     caas_conf.read(conf_file)
+    
+    # Validate configuration values for special characters
+    # This is "frontend", but server will do a validation on the backend nonetheless
+    if not validate_config_values(caas_conf):
+        print('Configuration input validation failed! Please fix the invalid characters in your configuration file.')
+        sys.exit(1)
+    
     constraint = caas_conf['project'].get('constraint', constraint_default)
     sources = caas_conf['project'].get('sources', sources_default)
     misc = caas_conf['project'].get('misc', misc_default)

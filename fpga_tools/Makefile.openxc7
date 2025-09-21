@@ -38,7 +38,7 @@ ${BUILDDIR}/top.fasm: ${BUILDDIR}/top.json ${CHIPDB}/${PART}.bin
 	nextpnr-xilinx --chipdb ${CHIPDB}/${PART}.bin --xdc ${XDC} --json ${BUILDDIR}/top.json --fasm $@ >> ${LOGFILE} 2>&1
 	
 ${BUILDDIR}/top.frames: ${BUILDDIR}/top.fasm
-	fasm2frames --part ${PART} --db-root ${DB_DIR}/${CHIPFAM} $< > $@
+	fasm2frames --part ${PART} --db-root ${DB_DIR}/${CHIPFAM} $< > $@ 2>> ${LOGFILE}
 
 ${BUILDDIR}/__CAAS_BITNAME: ${BUILDDIR}/top.frames
 	xc7frames2bit --part_file ${DB_DIR}/${CHIPFAM}/${PART}/part.yaml --part_name ${PART} --frm_file $< --output_file $@ >> ${LOGFILE} 2>&1
