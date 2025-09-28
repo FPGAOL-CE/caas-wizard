@@ -12,7 +12,7 @@ fi
 
 # Run simulation using OSS CAD Suite container
 # This container includes Verilator, Icarus Verilog, and other simulation tools
-docker run --pull never -it --rm -m 8G \
+${DOCKER_EXEC:-docker} run --pull never -it --rm -m 8G \
 	-v `pwd`:/mnt \
 	--tmpfs /tmp \
 	regymm/oss-cad-suite${append} make -C /mnt -f Makefile.sim.caas
