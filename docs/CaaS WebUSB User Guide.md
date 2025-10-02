@@ -37,7 +37,7 @@ When opening the web page for the first time, it may freeze a few seconds when t
 
 ### Caution points
 
-- Always, the first from the list of selected USB will be used (instead of the recently-selected one), because of some LibUSB condition. 
+- The platform is not recommended to have multiple USB devices selected together. 
   - Thus, if other devices (Keyboard, Mice, etc) are accidentally selected, the correct downloader may not be used. In this case, press the **"Disconnect all USB"** button, refresh the page, and **"Connect Local USB"** again. 
 - The flash chip (NOT the FPGA chip itself) may have limited lifetime. Usually, I'll avoid program to flash too often. 
 - If your custom device cannot be detected, please have a try using openFPGAloader on the local machine: if it still doesn't show up, probably the hardware setup is having some problem.
