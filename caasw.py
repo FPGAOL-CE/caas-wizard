@@ -235,7 +235,7 @@ def getjobid():
 
 # this is writen by GPT
 def extract_github_url(url):
-    pattern = re.compile(r"https://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+)(?:/tree/(?P<branch>[^/]+)/(?P<dir>.+))?")
+    pattern = re.compile(r"^https://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+)(?:/tree/(?P<branch>[^/]+)(?:/(?P<dir>.+))?)?$")
     match = pattern.search(url)
     
     if match:
