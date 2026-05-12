@@ -210,23 +210,23 @@ def gowin_derive(part, backend):
     if backend == 'gowin' and 'GW' in part:
         gowin_part = part
         # parts in https://github.com/YosysHQ/apicula/blob/master/examples/Makefile
-        if part == 'GW1NR-LV9QN88PC6\/I5':
+        if part == 'GW1NR-LV9QN88PC6\\/I5':
             gowin_family = 'GW1N-9C'
-        elif part == 'GW1NSR-LV4CQN48PC7\/I6':
+        elif part == 'GW1NSR-LV4CQN48PC7\\/I6':
             gowin_family = 'GW1NS-4'
-        elif part == 'GW1NZ-LV1QN48C6\/I5':
+        elif part == 'GW1NZ-LV1QN48C6\\/I5':
             gowin_family = 'GW1NZ-1'
-        elif part == 'GW1NR-LV9QN88C6\/I5':
+        elif part == 'GW1NR-LV9QN88C6\\/I5':
             gowin_family = 'GW1N-9'
-        elif part == 'GW2AR-LV18QN88C8\/I7':
+        elif part == 'GW2AR-LV18QN88C8\\/I7':
             gowin_family = 'GW2A-18C'
-        elif part == 'GW2A-LV18PG256C8\/I7':
+        elif part == 'GW2A-LV18PG256C8\\/I7':
             gowin_family = 'GW2A-18'
-        elif part == 'GW1N-UV4LQ144C6\/I5':
+        elif part == 'GW1N-UV4LQ144C6\\/I5':
             gowin_family = 'GW1N-4'
-        elif part == 'GW1N-LV1QN48C6\/I5':
+        elif part == 'GW1N-LV1QN48C6\\/I5':
             gowin_family = 'GW1N-1'
-        elif part == 'GW1NS-UX2CQN48C5\/I4':
+        elif part == 'GW1NS-UX2CQN48C5\\/I4':
             gowin_family = 'GW1NS-2'
     return (gowin_part, gowin_family)
 
@@ -353,14 +353,14 @@ def mfgen(conf_file, proj_dir, makefile, script, backend, overwrite, clone, sim=
         print('Write dummy %s...' % script_name)
         os.system('''cat > %s << EOF
 #!/bin/sh
-curdir=\`pwd\`
-cd \$curdir/%s
+curdir=\\`pwd\\`
+cd \\$curdir/%s
 ./%s
-ret=\$?
-cd \$curdir
+ret=\\$?
+cd \\$curdir
 mkdir -p %s
-cp -rf \$curdir/%s/%s/* \$curdir/%s/
-exit \$ret
+cp -rf \\$curdir/%s/%s/* \\$curdir/%s/
+exit \\$ret
 EOF
 ''' % (os.path.join(proj_dir, script_name),
      target_rel_path,
@@ -414,19 +414,19 @@ EOF
     # only vivado backend is tcl-based, others are just makefiles
     srcwildcard = ""
     if backend != 'vivado':
-        for s in sources.replace("/", "\/").split(","):
+        for s in sources.replace("/", "\\/").split(","):
             srcwildcard = srcwildcard + " $(wildcard " + s + ") "
     else:
-        srcwildcard = sources.replace("/", "\/").replace(",", " ")
+        srcwildcard = sources.replace("/", "\\/").replace(",", " ")
     constraintwildcard = ""
-    for s in constraint.replace("/", "\/").split(","):
+    for s in constraint.replace("/", "\\/").split(","):
         constraintwildcard = constraintwildcard + " $(wildcard " + s + ") "
     # simulation-specific wildcards
     sim_srcwildcard = ""
-    for s in sim_sources.replace("/", "\/").split(","):
+    for s in sim_sources.replace("/", "\\/").split(","):
         sim_srcwildcard = sim_srcwildcard + " $(wildcard " + s + ") "
     sim_miscwildcard = ""
-    for s in sim_misc.replace("/", "\/").split(","):
+    for s in sim_misc.replace("/", "\\/").split(","):
         sim_miscwildcard = sim_miscwildcard + " $(wildcard " + s + ") "
     os.system(SEDEXEC + " -i " 
               + "-e \'s/__CAAS_TOP/" + top + "/g\' "
